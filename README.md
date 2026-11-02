@@ -39,7 +39,13 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-
+1. Arrive: JSON {text, creator_id} hits /submit. Extract text and creator_id from the payload. Decide here what happens when the text is missing, empty or huge.
+2. Assign an ID: a content_id is generated, because /appeal needs it later.
+3. Signal one: detector.model_signal(text) gives model_score.
+4. Signal two: stylometry.style_signal(text) gives style_score.
+5. Combine: scoring.combine_signals(...) turns the two scores into one confidence.
+6. Label: scoring.score_to_label(...) maps the score to the label a reader sees.
+7. Log and respond: audit.log_decision(...) records both signal scores and the combined one, and the response returns the label.
 
 ---
 
@@ -54,18 +60,48 @@
 ### Signal one — the model signal
 
 **What it measures:**
+Measures the model signal which is a 0–1 score measure of perplexity. A score of 1 means the text is most likely an AI generated text. A text with a score of 0.5 is a coin flip.
 
 **Why that might differ between human and AI writing:**
 
+Human writing tends to be unpredictable and thus might have a lower perplexity score whereas AI writing tends to be plain, simple and predictable leading to a higher perplexity score.
+
 **What it can't see:**
+
+Authorship. The model signal measures how predictable the text is to gpt2, not who wrote it. It scores common words in short, ordinary sentences as machine-like, and plenty of real people write that way. That includes people writing in a second language who stick to vocabulary they're sure of, younger writers, and anyone who writes plainly on purpose. Plain human writing can score as machine-like as AI output does.
+
+The error also runs the other way. Dense, ornate prose full of rare words can score as human, because a language model is bad at predicting rare words. Being formal doesn't decide the score either way.
 
 ### Signal two — the style signal
 
 **What it measures:**
 
+Measures the style signal, the shape of the text, without understanding meaning.
+
 **Why that might differ between human and AI writing:**
+Generated prose tends toward even, mid-length sentences and a narrower band of vocabulary, because that's what "most likely next word" produces on average. Human writing is lumpier — a three-word sentence next to a forty-word one.
 
 **What it can't see:**
+
+This signal cannot read. It has no idea what the text says. Anything that
+changes the shape without changing the substance moves it — adding typos,
+breaking up sentences, pasting in a quotation.
+
+### Endpoints
+
+**/appeal**
+A writer says you got it wrong. ← TODO — Milestone 5
+
+Expects JSON:
+{"content_id": "...", "reasoning": "..."}
+Returns a confirmed label
+
+**/submit**
+Expects JSON:
+{"text": "...", "creator_id": "..."}
+Returns:
+{"content_id": "...", "guess": "...", "confidence": 0.0, "label": "...",
+"model_score": 0.0, "style_score": 0.0}
 
 ### The combining rule
 
@@ -83,8 +119,6 @@
 
 **A case where my two signals split, and what my rule does with it:**
 
-
-
 ---
 
 ## Label Variants
@@ -94,18 +128,17 @@
 
      Write them for someone who has never heard the word "threshold". -->
 
-| Label | Score range | The exact text a reader sees |
-|---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| Label                 | Score range | The exact text a reader sees |
+| --------------------- | ----------- | ---------------------------- |
+| high-confidence human |             |                              |
+| unsure                |             |                              |
+| high-confidence AI    |             |                              |
 
 **Why I worded the "unsure" one this way:**
+
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
-
-
 
 ---
 
@@ -159,15 +192,15 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- _What I asked for:_
+- _What came back:_
+- _What I changed:_
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- _What I asked for:_
+- _What came back:_
+- _What I changed:_
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
@@ -175,9 +208,10 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** **_ per minute, _** per day
 
 **Why those numbers and not others:**
+
 <!-- Think about two people: a real writer submitting their own work a few
      times an hour, and a script sending a thousand variations to map your
      thresholds. Your numbers have to be liveable for the first and hostile to
@@ -202,8 +236,6 @@ can look like one. -->
 <!-- Every attack with its outcome and a held-or-broke mark.
      `run_attacks.py --label before` produces the table. -->
 
-
-
 **Ten audit log entries from the run**
 
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
@@ -215,8 +247,6 @@ can look like one. -->
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
 
-
-
 ---
 
 ## Run Log and Verdicts
@@ -224,12 +254,12 @@ whose work got caught by it:
 <!-- Your five criteria across three trials. `run_eval.py --label before`. -->
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
-|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| --------- | ------ | ----- | ----- | ----- | ------- |
+| 1.        |        |       |       |       |         |
+| 2.        |        |       |       |       |         |
+| 3.        |        |       |       |       |         |
+| 4.        |        |       |       |       |         |
+| 5.        |        |       |       |       |         |
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
@@ -254,8 +284,6 @@ that produced it:
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
-
-
 ---
 
 ## The Improvement
@@ -268,14 +296,10 @@ that produced it:
 
 <!-- Same format. `run_attacks.py --label after` -->
 
-
-
 **Did it help, and how do I know:**
 
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
-
-
 
 ---
 
@@ -284,14 +308,10 @@ that produced it:
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
-
-
 **The trade I'd make if this ran for real:**
 
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
-
-
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
