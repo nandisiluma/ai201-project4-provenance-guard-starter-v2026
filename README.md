@@ -157,11 +157,18 @@ Returns:
 ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text": "The weather is choppy", "creator_id": "A253"}'
 ```
 
 ```json
-
+{
+  "confidence": 0.5,
+  "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
+  "guess": "unsure",
+  "label": "PLACEHOLDER label",
+  "model_score": 0.2013,
+  "style_score": 0.5
+}
 ```
 
 **An appeal**
@@ -169,11 +176,18 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48", "reasoning": "testing"}'
 ```
 
 ```json
-
+{
+  "error": "not_implemented",
+  "message": "POST /appeal isn't built yet \u2014 see the TODO in app.py.",
+  "you_sent": {
+    "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
+    "reasoning": "testing"
+  }
+}
 ```
 
 **What the log shows afterwards**
@@ -183,7 +197,22 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
 ```json
-
+{
+  "count": 1,
+  "entries": [
+    {
+      "combined_score": null,
+      "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
+      "creator_id": "A253",
+      "guess": "unsure",
+      "label": "PLACEHOLDER label",
+      "model_score": 0.2013,
+      "status": "decided",
+      "style_score": null,
+      "timestamp": "2026-11-03T22:18:21+00:00"
+    }
+  ]
+}
 ```
 
 ---
