@@ -153,6 +153,12 @@ def health():
 
 # ── YOU BUILD THIS ────────────────────────────────────────────────────────────
 
+def _reject(creator_id, reason, status, message, **extra):
+    """Log a rejected request and answer with a 4xx and an `error` field."""
+    audit.log_rejection(creator_id=creator_id, reason=reason, **extra)
+    return jsonify({"error": reason, "message": message}), status
+
+
 @app.post("/submit")
 @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
@@ -203,10 +209,37 @@ def submit():
     a malformed input is one of the most common real failures there is.
     """
     # Milestone 3, step 1: hardcoded response. No logic yet.
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _reject("anonymous", "invalid_body", 400,
+                       "Send a JSON object like {\"text\": \"...\", \"creator_id\": \"...\"}.")
+
     text = payload.get("text")
     creator_id = payload.get("creator_id")
-    model_score = detector.model_signal(text)
+    log_creator = creator_id if isinstance(creator_id, str) and creator_id.strip() else "anonymous"
+
+    # Validate before any signal sees the text. A rejected request is logged,
+    # never scored or labelled.
+    if "text" not in payload or text is None:
+        return _reject(log_creator, "missing_text", 400, "A submission needs a `text` field.")
+    if not isinstance(text, str):
+        return _reject(log_creator, "text_not_a_string", 400, "`text` must be a string.")
+    if not text.strip():
+        return _reject(log_creator, "empty_text", 400, "`text` is empty or only whitespace.")
+    if len(text) > config.MAX_TEXT_CHARS:
+        return _reject(log_creator, "text_too_long", 413,
+                       f"`text` is over {config.MAX_TEXT_CHARS} characters.",
+                       length=len(text))
+    # Text with no Latin words (emoji, other scripts, punctuation) can't be
+    # read by signal two and would otherwise score as maximally AI.
+    if not stylometry.words(text):
+        return _reject(log_creator, "no_readable_text", 422,
+                       "`text` has no words we can analyze (English letters or digits).")
+
+    try:
+        model_score = detector.model_signal(text)
+    except ValueError as exc:  # too few tokens for the model to score
+        return _reject(log_creator, "text_too_short", 422, str(exc))
     style_score = round(stylometry.style_signal(text), 4)
     combined_score = round(scoring.combine_signals(model_score, style_score), 4)
 

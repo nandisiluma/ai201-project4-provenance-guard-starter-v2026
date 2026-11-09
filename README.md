@@ -1010,16 +1010,71 @@ Signal two is the cheaper one to beat (EV02, EV03, EV06, EV07, EV09). It is also
 
 **What I changed:**
 
+I added input validation to the route, `app.py::submit`, and a length limit, `MAX_TEXT_CHARS = 5000`, in `config.py`. Before any signal sees the text, `submit()` now rejects:
+
+| Input | Status | `error` |
+| --- | --- | --- |
+| Body isn't a JSON object (array, unparseable, empty) | 400 | `invalid_body` |
+| `text` missing or null | 400 | `missing_text` |
+| `text` isn't a string (number, list, object) | 400 | `text_not_a_string` |
+| Empty or whitespace-only `text` | 400 | `empty_text` |
+| `text` over 5,000 characters | 413 | `text_too_long` |
+| No English letters or digits (emoji, Arabic, punctuation only) | 422 | `no_readable_text` |
+| Too few tokens for the model to score | 422 | `text_too_short` |
+
+Each rejection goes through `app.py::_reject`, which writes `audit.log_rejection(...)` and returns the 4xx. A bad request is never scored or labelled, and it still leaves an entry in `/log`:
+
+```json
+{
+  "timestamp": "2026-11-09T22:41:57+00:00",
+  "creator_id": "eval_bad_whitespace",
+  "event": "rejected",
+  "status": "rejected",
+  "reason": "empty_text"
+}
+```
+
 **Which diagnosis pointed at it:**
+
+The criterion 5 diagnosis and the "9 auto-BROKE" diagnosis. Both named the route as the stage: it passed `text` to the signals without checking its type or content. The "bad input that scored 200" diagnosis (MF06 emoji, MF07 Arabic, MF08 at 60,000 characters) pointed at the same place. The signals can't tell that a text is not real text, so the route has to reject it first.
 
 ### Attack Run — After
 
-<!-- Same format. `run_attacks.py --label after` -->
+Produced by `run_attacks.py::main`, saved in `results/attack_run_2026-11-09_1641_after.md`. The criteria table is from `run_eval.py::main`, in `results/run_2026-11-09_1641_after.md`.
+
+| Criterion          | Target | Run 1  | Run 2  | Run 3  | Verdict |
+| ------------------ | ------ | ------ | ------ | ------ | ------- |
+| 1. False positives | 3/3    | MET    | MET    | MET    | MET     |
+| 2. score spread    | 3/3    | MET    | MET    | MET    | MET     |
+| 3. label coverage  | 3/3    | MET    | MET    | MET    | MET     |
+| 4. appeal path     | 3/3    | MET    | MET    | MET    | MET     |
+| 5. bad input       | 3/3    | MET    | MET    | MET    | MET     |
+
+| | Before (`attack_run_2026-11-09_1247.md`) | After (`attack_run_2026-11-09_1641_after.md`) |
+| --- | --- | --- |
+| Attacks that crashed (5xx) | 9 | 0 |
+| Malformed bodies answered with a label | MF06 `ai` 0.9985, MF07 `ai` 0.9532, MF08 `ai` 0.9084, MF01/MF04 scored | none, all rejected 4xx |
+| Criterion 5 | MISSED in 3/3 trials | MET in 3/3 trials |
+
+Real output for criterion 5 after the change (`run_eval.py::main`, trial 1, same five bodies as before):
+
+```json
+[
+  {"status": 400, "error": "missing_text", "guess": null, "label": null, "sent": "{\"creator_id\": \"eval_bad_missing\"}"},
+  {"status": 400, "error": "missing_text", "guess": null, "label": null, "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"},
+  {"status": 400, "error": "empty_text",   "guess": null, "label": null, "sent": "(empty text)"},
+  {"status": 400, "error": "empty_text",   "guess": null, "label": null, "sent": "   \n\t  "},
+  {"status": 413, "error": "text_too_long", "guess": null, "label": null, "sent": "word word word word word word word word word word word word word word "}
+]
+```
+
+The other two trials are identical.
 
 **Did it help, and how do I know:**
 
-<!-- Widening the unsure band usually fixes one problem and creates another.
-     Reporting that trade honestly is worth full credit. -->
+Yes. All five bad inputs now return a 4xx with an `error` field and no label, in all three trials. The audit log has a matching `rejected` entry for each reason (`missing_text`, `empty_text`, `text_too_long`, `no_readable_text`, `text_not_a_string`, `invalid_body`, `text_too_short`). Criterion 5 went from MISSED to MET, and the 9 crashes are gone. All 9 attacks that crashed before now return a clean 4xx (MF02 422, the rest 400), and the three that got a confident label on non-text (MF06, MF07, MF08) are rejected.
+
+It did not change anything for real text. The false-positive attacks (FP02–FP07) still score exactly 0.64, and the evasions EV01–EV09 still score `unsure`, with the same scores as before the change. Validation fixed the route stage only.
 
 ---
 
