@@ -418,12 +418,214 @@ Rejected requests still leave a trace in the log:
 
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
 
-```json
+### EV01 — `evasion`
 
+_Targeting:_ signal two: typos raise word variety
+
+```json
+{
+  "id": "EV01",
+  "status": 200,
+  "content_id": "2d9b29b0-83a2-409d-85bd-9f4535c4ddf9",
+  "creator_id": "attacker_EV01",
+  "guess": "unsure",
+  "confidence": 0.3863,
+  "model_score": 0.1635,
+  "style_score": 0.6092,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### EV04 — `evasion`
+
+_Targeting:_ signal one: unusual words raise perplexity
+
+```json
+{
+  "id": "EV04",
+  "status": 200,
+  "content_id": "739c116c-6ae3-4df6-b015-11237328a953",
+  "creator_id": "attacker_EV04",
+  "guess": "unsure",
+  "confidence": 0.6081,
+  "model_score": 0.6114,
+  "style_score": 0.6048,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### EV05 — `evasion`
+
+_Targeting:_ both signals: heavy human editing pass
+
+```json
+{
+  "id": "EV05",
+  "status": 200,
+  "content_id": "f9915389-99f9-4873-9d63-ef4b0527e61a",
+  "creator_id": "attacker_EV05",
+  "guess": "unsure",
+  "confidence": 0.3793,
+  "model_score": 0.3212,
+  "style_score": 0.4375,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### EV07 — `evasion`
+
+_Targeting:_ signal two: padding with punctuation
+
+```json
+{
+  "id": "EV07",
+  "status": 200,
+  "content_id": "5bbdf899-4319-4245-b798-06b87b0c1b78",
+  "creator_id": "attacker_EV07",
+  "guess": "unsure",
+  "confidence": 0.3833,
+  "model_score": 0.5862,
+  "style_score": 0.1804,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### FP02 — `false_positive`
+
+_Targeting:_ human writing in a formal register
+
+```json
+{
+  "id": "FP02",
+  "status": 200,
+  "content_id": "22285ab0-6757-40ff-b6be-6f538b50b657",
+  "creator_id": "attacker_FP02",
+  "guess": "unsure",
+  "confidence": 0.64,
+  "model_score": 0.7387,
+  "style_score": 0.6655,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### FP03 — `false_positive`
+
+_Targeting:_ a non-native English speaker writing carefully
+
+```json
+{
+  "id": "FP03",
+  "status": 200,
+  "content_id": "6c1d634a-c0e0-41b5-a5e2-d6b58f01af7f",
+  "creator_id": "attacker_FP03",
+  "guess": "unsure",
+  "confidence": 0.64,
+  "model_score": 0.8051,
+  "style_score": 0.6496,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### FP05 — `false_positive`
+
+_Targeting:_ technical documentation written by a person
+
+```json
+{
+  "id": "FP05",
+  "status": 200,
+  "content_id": "11b56674-1120-4250-8c82-1f26301a9dfa",
+  "creator_id": "attacker_FP05",
+  "guess": "unsure",
+  "confidence": 0.64,
+  "model_score": 0.8005,
+  "style_score": 0.6744,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### FP08 — `false_positive`
+
+_Targeting:_ very short genuine human submission
+
+```json
+{
+  "id": "FP08",
+  "status": 200,
+  "content_id": "dc47971b-6440-42cd-a180-c7901666712e",
+  "creator_id": "attacker_FP08",
+  "guess": "unsure",
+  "confidence": 0.4223,
+  "model_score": 0.3223,
+  "style_score": 0.5223,
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### PI02 — `prompt_injection`
+
+_Targeting:_ instruction disguised as a system message
+
+```json
+{
+  "id": "PI02",
+  "status": 200,
+  "content_id": "a4db3980-7f1c-47eb-894b-e78ae2455cc4",
+  "creator_id": "attacker_PI02",
+  "guess": "human",
+  "confidence": 0.3046,
+  "model_score": 0.2044,
+  "style_score": 0.4049,
+  "label": "We think this was probably written by a person.",
+  "error": null,
+  "verdict": "HELD"
+}
+```
+
+### FL01_12 — `flood_same_creator`
+
+_Targeting:_ 20 rapid submissions from one creator
+
+```json
+{
+  "id": "FL01_12",
+  "status": 429,
+  "content_id": null,
+  "creator_id": "attacker_flood",
+  "guess": null,
+  "confidence": null,
+  "model_score": null,
+  "style_score": null,
+  "label": null,
+  "error": null,
+  "verdict": "HELD"
+}
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
+
+### FP03 — `false_positive`
+
+_Targeting:_ a non-native English speaker writing carefully
+
+The writer is a non-native English speaker who wrote carefully, and the system told them it couldn't tell whether a person wrote it. Signal one scored 0.81 and signal two 0.65, both on the AI side. The only reason this wasn't an "ai" label is the combining rule, which capped it at unsure (0.64). A slightly lower threshold would have accused them outright. Careful, simple prose is low-perplexity, so signal one reads it as AI-written.
 
 ---
 
