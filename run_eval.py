@@ -66,6 +66,20 @@ def describe(body):
     return json.dumps(body)[:120]
 
 
+def appeal_for(requests, args, spec, content_id):
+    """POST /appeal for one content_id and report what came back."""
+    try:
+        response = requests.post(
+            f"{args.url}/appeal",
+            json={"content_id": content_id, "reasoning": spec["reasoning"]},
+            timeout=args.timeout)
+        payload = response.json() if response.content else {}
+        return {"status": response.status_code, "body_status": payload.get("status"),
+                "error": payload.get("error")}
+    except Exception as exc:  # noqa: BLE001
+        return {"status": None, "error": f"{type(exc).__name__}: {exc}"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -119,8 +133,14 @@ def main():
                     response = requests.post(f"{args.url}/submit", json=body,
                                              timeout=args.timeout)
                     payload = response.json() if response.content else {}
+                    appeal = None
+                    if scenario.get("appeal") and payload.get("content_id"):
+                        appeal = appeal_for(requests, args, scenario["appeal"],
+                                            payload["content_id"])
                     results.append({
                         "status": response.status_code,
+                        "error": payload.get("error"),
+                        "appeal": appeal,
                         "guess": payload.get("guess"),
                         "confidence": payload.get("confidence"),
                         "model_score": payload.get("model_score"),
@@ -131,6 +151,11 @@ def main():
                 except Exception as exc:  # noqa: BLE001
                     results.append({"status": None, "error": f"{type(exc).__name__}: {exc}",
                                     "sent": preview})
+
+            if scenario.get("appeal"):
+                results.append({"sent": "(unknown content_id)",
+                                "appeal": appeal_for(requests, args, scenario["appeal"],
+                                                     scenario["appeal"]["unknown_content_id"])})
 
             trials.append(results)
             guesses = [r.get("guess") or "—" for r in results]

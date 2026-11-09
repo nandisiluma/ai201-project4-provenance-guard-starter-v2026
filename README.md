@@ -633,20 +633,303 @@ The writer is a non-native English speaker who wrote carefully, and the system t
 
 <!-- Your five criteria across three trials. `run_eval.py --label before`. -->
 
-| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
-| --------- | ------ | ----- | ----- | ----- | ------- |
-| 1.        |        |       |       |       |         |
-| 2.        |        |       |       |       |         |
-| 3.        |        |       |       |       |         |
-| 4.        |        |       |       |       |         |
-| 5.        |        |       |       |       |         |
+| Criterion          | Target | Run 1  | Run 2  | Run 3  | Verdict |
+| ------------------ | ------ | ------ | ------ | ------ | ------- |
+| 1. False positives | 3/3    | MET    | MET    | MET    | MET     |
+| 2. score spread    | 3/3    | MET    | MET    | MET    | MET     |
+| 3. label coverage  | 3/3    | MET    | MET    | MET    | MET     |
+| 4. appeal path     | 3/3    | MET    | MET    | MET    | MET     |
+| 5. bad input       | 3/3    | MISSED | MISSED | MISSED | MISSED  |
 
-**Real output from one trial**, pasted as text, naming the file and function
-that produced it:
+**Real output from trial 1 of `results/run_2026-11-09_1550_before.md`**, pasted as text, one block per criterion. Each block was produced by `run_eval.py::main`, which sends the request and records the response; the service behind it is named in each heading.
+
+#### Criterion 1 — False positives
+
+Produced by `run_eval.py::main` calling `app.py::submit`.
 
 ```json
-
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.7193,
+    "style_score": 0.5977,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Good day,Unfortunately due to competing priorities, I will not be able"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.3662,
+    "model_score": 0.3311,
+    "style_score": 0.4014,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Hello, I am reaching out because a Walmart grocery delivery intended f"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.6072,
+    "model_score": 0.7719,
+    "style_score": 0.4425,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Hi Diana, Thank you for following up with me. I realized that I do not"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.504,
+    "model_score": 0.5451,
+    "style_score": 0.463,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Hello CS7 Students, Congratulations again on completing this class! We"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5282,
+    "model_score": 0.4743,
+    "style_score": 0.5821,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "The art of our mindset determines the people we become, directs the wa"
+  }
+]
 ```
+
+#### Criterion 2 — score spread
+
+Produced by `run_eval.py::main` calling `app.py::submit`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "ai",
+    "confidence": 0.781,
+    "model_score": 0.8579,
+    "style_score": 0.7041,
+    "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "human",
+    "confidence": 0.2854,
+    "model_score": 0.3099,
+    "style_score": 0.2609,
+    "label": "We think this was probably written by a person.",
+    "sent": "Okay so \u2014 the dog ate my sandwich. Not a metaphor. Actual sandwich, ac"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5693,
+    "model_score": 0.6698,
+    "style_score": 0.4688,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  }
+]
+```
+
+#### Criterion 3 — label coverage
+
+Produced by `run_eval.py::main` calling `app.py::submit`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "ai",
+    "confidence": 0.781,
+    "model_score": 0.8579,
+    "style_score": 0.7041,
+    "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "human",
+    "confidence": 0.2854,
+    "model_score": 0.3099,
+    "style_score": 0.2609,
+    "label": "We think this was probably written by a person.",
+    "sent": "Okay so \u2014 the dog ate my sandwich. Not a metaphor. Actual sandwich, ac"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5693,
+    "model_score": 0.6698,
+    "style_score": 0.4688,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  }
+]
+```
+
+#### Criterion 4 — appeal path
+
+Produced by `run_eval.py::main` calling `app.py::submit then app.py::appeal`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.4306,
+    "model_score": 0.461,
+    "style_score": 0.4002,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Good day, due to competing priorities I will not be able to volunteer "
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.5162,
+    "model_score": 0.6372,
+    "style_score": 0.3952,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Hi Diana, thank you for following up. I do not meet the GPA requiremen"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.3715,
+    "model_score": 0.3451,
+    "style_score": 0.3978,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Okay so, the dog ate my sandwich. Not a metaphor. I turned around for "
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.7691,
+    "style_score": 0.5834,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.8341,
+    "style_score": 0.6143,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "sent": "(unknown content_id)",
+    "appeal": {
+      "status": 404,
+      "body_status": null,
+      "error": "unknown_content_id"
+    }
+  }
+]
+```
+
+#### Criterion 5 — bad input
+
+Produced by `run_eval.py::main` calling `app.py::submit`.
+
+```json
+[
+  {
+    "status": null,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "sent": "{\"creator_id\": \"eval_bad_missing\"}"
+  },
+  {
+    "status": null,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"
+  },
+  {
+    "status": null,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "sent": "(empty text)"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5,
+    "model_score": 0.0,
+    "style_score": 1.0,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "   \n\t  "
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "ai",
+    "confidence": 0.9985,
+    "model_score": 0.9975,
+    "style_score": 0.9995,
+    "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "sent": "word word word word word word word word word word word word word word "
+  }
+]
+```
+
+The first three bodies (missing `text`, `text: null`, empty string) show `status: null` with `JSONDecodeError` because `app.py::submit` has no input validation. It crashes instead of returning a JSON error, so `run_eval.py` could not parse a response. The whitespace-only and 5,500-character bodies both returned `200` with a score and label, so criterion 5 is missed.
 
 **Diagnoses**
 
