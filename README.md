@@ -279,17 +279,65 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## How I Used AI
 
-**Moment 1**
+**Moment 1 — Analyzing the requirements (acceptance criteria)**
 
-- _What I asked for:_
-- _What came back:_
-- _What I changed:_
+- _What I asked for:_ A review of all five of my acceptance criteria for
+  testability, after I had written them. Earlier I had also asked what "label
+  coverage" means, and how to write a bad-input criterion that doesn't
+  contradict my criterion that every test input gets a label.
+- _What came back:_ It found that four of my criteria couldn't be checked as
+  written. "Recognizes human writing 5/5 times" didn't say whether "unsure"
+  counts as a pass. "The spread" didn't say what was being measured or 4/5 of
+  what. The label-coverage criterion could never fail, because `score_to_label`
+  always returns one of three labels. "A clear message" for bad input was a
+  judgment call. For my bad-input worry, it suggested scoping the label
+  criterion to valid input only.
+- _What I changed:_ I accepted the revised wording for criteria 1, 2, 3 and 5
+  and kept the one it said was already fine (the appeal criterion). Each one now
+  names a number and a way to check it. I also kept the reasoning in the "why"
+  lines as my own: a false accusation costs the writer more than a missed
+  detection.
 
-**Moment 2**
+**Moment 2 — Writing and debugging the code**
 
-- _What I asked for:_
-- _What came back:_
-- _What I changed:_
+- _What I asked for:_ Reviews of my own implementations of
+  `sentence_length_spread`, `type_token_ratio` and `style_signal`, then help
+  building `punctuation_density`, the `/submit` wiring, `score_to_label` and
+  `/appeal`. I also asked how a route reads the request when `submit()` takes no
+  arguments.
+- _What came back:_ Specific bugs I had missed. `l.len()` doesn't exist in
+  Python. `for wrd in total_words` loops over an integer. `sum(a, b, c)` takes a
+  list, not three arguments. A one-sentence text crashed `stdev`. My first
+  "skip the spread" condition (`spread_ai == 1.0`) would also have skipped texts
+  whose sentences are all the same length, which is strong AI evidence. It
+  explained that `request` is a global Flask object, so `submit()` doesn't
+  need a payload argument.
+- _What I changed:_ I fixed my own functions from the reviews, and changed the
+  skip condition to `len(sentences(text)) < 2`. I disagreed with it once: it
+  dropped `?` and `!` from the punctuation count because they end sentences, and
+  I pointed out I count the whole text, not sentences. It agreed the reason was
+  weaker than it sounded, and I put them back. I ran each change myself with
+  `curl` and by reading `/log` instead of trusting that it worked.
+
+**Moment 3 — Developing test scenarios**
+
+- _What I asked for:_ Four test texts: clearly AI, clearly human, formal human
+  and lightly-edited AI. Later I asked for texts that would trigger the `human`
+  and `ai` labels, since all four of mine came back "unsure".
+- _What came back:_ Candidate texts with real scores from my two signals, not
+  guesses. The scores showed something I hadn't expected: a plainly written
+  human paragraph scored as AI-like on both signals (model 0.85, style 0.69),
+  and my style signal scored it higher than a clearly AI paragraph (0.54). It
+  searched a batch of candidates and found texts that reach `ai` and `human`,
+  and it spotted that my "Human" and "AI" test texts in this README had been
+  swapped (both were AI-written).
+- _What I changed:_ I used the texts that reach each label as my Test texts and
+  fixed the swapped entries. I also proposed giving the style signal more
+  weight than the model signal, because I thought plain writing is common among
+  humans. The AI tested that against my data and showed it wouldn't help,
+  because both signals misread plain writing. I switched to the agreement-gate
+  rule in "The combining rule" and recorded the trade-off: fewer false
+  accusations, and less AI text caught.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
