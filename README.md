@@ -110,7 +110,13 @@ Returns:
 
 **The rule:**
 
+Average the two scores with equal weight. A text can only reach the high-confidence AI range if both signals independently score it at or above a gate; if either signal is below the gate, the combined score is capped just under the AI threshold, so the most the text can get is "unsure". The human end is not gated. I chose this because accusing a real writer costs that person far more than missing some AI text, and because both of my signals can misread plain human writing, so requiring them to agree before accusing means a single misreading signal can't produce an accusation. The cost is that AI text is accused less often.
+
 **The numbers:**
+
+- Weights: model signal 0.5, style signal 0.5 (`WEIGHT_MODEL_SIGNAL`, `WEIGHT_STYLE_SIGNAL`).
+- Agreement gate: 0.7 (`AGREEMENT_GATE`). A guess, to be checked against my calibration inputs.
+- Thresholds: human below 0.35, AI above 0.65 (`HUMAN_THRESHOLD`, `AI_THRESHOLD`). The cap is `AI_THRESHOLD - 0.01`.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -119,7 +125,24 @@ Returns:
 
 **A case where my two signals split, and what my rule does with it:**
 
----
+A lightly edited AI paragraph about social media ("Social media has changed how people talk. It lets friends stay in touch, but it can also make people feel left out. Some people post a lot. Others just scroll and never post at all, which is fine too I guess.") scored model 0.70 and style 0.47. The model signal reads it as AI, but the mix of short and long sentences makes the style signal read it as human-like. The average is about 0.59 and the style score is under the gate, so the rule keeps it at "unsure" instead of picking a side, which is what two signals disagreeing should mean.
+Lightly edited AI text:
+
+Social media has changed how people talk. It lets friends stay in touch, but it can also make people feel left out. Some people post a lot. Others just scroll and never post at all, which is fine too I guess.
+
+## Test texts
+
+**Human**
+'Effective communication is a cornerstone of successful teamwork. When team members share information openly, they build trust and foster collaboration. Furthermore, clear communication helps to minimize misunderstandings and ensures that everyone is aligned on goals. By actively listening and providing constructive feedback, individuals can contribute to a positive and productive work environment. In conclusion, prioritizing communication is essential for achieving long-term organizational success.'
+
+**AI**
+"Time management is an essential skill that helps students achieve their goals. By creating a consistent schedule, students can balance their academic responsibilities and personal interests. Furthermore, setting clear priorities allows individuals to use their time effectively and reduce stress."
+
+**Formal Human**
+The committee convened on Tuesday to consider the proposed amendments to the municipal zoning ordinance. After extended deliberation, it was resolved that the residential density limits would remain unchanged, pending a further review of infrastructure capacity. Several members expressed reservations regarding the projected burden on existing water and sewage services; these concerns will be addressed in the subsequent report, which is expected before the close of the fiscal year.
+
+**Slightly-edited AI**
+Remote work has changed how many people think about their jobs. It offers flexibility and saves commuting time, but it can also blur the line between work and home. Some people love it. Others miss the office more than they expected, honestly. Companies are still working out what a good balance looks like, and I suspect they will be for a while yet.
 
 ## Label Variants
 

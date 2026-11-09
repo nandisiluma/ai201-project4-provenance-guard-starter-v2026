@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -204,7 +206,9 @@ def submit():
     payload = request.get_json(silent=True) or {}
     text = payload.get("text")
     creator_id = payload.get("creator_id")
-    first_signal = detector.model_signal(text)
+    model_score = detector.model_signal(text)
+    style_score = round(stylometry.style_signal(text), 4)
+    combined_score = round(scoring.combine_signals(model_score, style_score), 4)
 
     # Milestone 3, step 4: one ID per submission, shared by the log and the
     # response so /appeal can find this decision later.
@@ -212,11 +216,14 @@ def submit():
     guess = "unsure"
     label = "PLACEHOLDER label"
 
+    # Milestone 4, step 7: log both signal scores beside the combined one.
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
         guess=guess,
-        model_score=first_signal,
+        model_score=model_score,
+        style_score=style_score,
+        combined_score=combined_score,
         label=label,
     )
 
@@ -224,10 +231,10 @@ def submit():
         {
         "content_id": content_id,
         "guess": guess,
-        "confidence": 0.5,
+        "confidence": combined_score,
         "label": label,
-        "model_score": first_signal,
-        "style_score": 0.5
+        "model_score": model_score,
+        "style_score": style_score,
         }
 
     )

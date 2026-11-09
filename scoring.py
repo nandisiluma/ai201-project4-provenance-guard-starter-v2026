@@ -33,30 +33,20 @@ def combine_signals(model_score: float, style_score: float) -> float:
     Returns:
         A float from 0.0 (confidently human) to 1.0 (confidently AI).
 
-    ⚠️ **Write the rule down before you code it, and put the numbers in your
-    README.** A weighted average is the obvious choice and it is not the only
-    one. Things worth thinking about:
-
-      - **What happens when they disagree?** One signal at 0.9 and the other at
-        0.1 averages to 0.5 — "unsure". Is that what you want? It might be
-        exactly right: two methods disagreeing IS uncertainty. Or you might
-        decide one signal is more trustworthy when they split.
-
-      - **Which way do you want to be wrong?** Weighting toward the signal that
-        reads more human means fewer false accusations and more AI text
-        getting through. There's no weighting that avoids the trade.
-
-      - Milestone 4 asks you to find a case where your two signals split and
-        write it down. That case is what this rule exists to handle.
-
-    The weights in config.py are placeholders. Change them, or ignore them and
-    write a different rule.
+    The rule: a weighted average (weights in config.py, currently 50/50), with
+    an agreement gate. Accusing a real writer costs far more than missing AI
+    text, so a result can only reach the "ai" range when BOTH signals are at or
+    above config.AGREEMENT_GATE. If either is lower, the score is capped just
+    under config.AI_THRESHOLD, so the best that text can get is "unsure". The
+    "human" end is not gated.
     """
-    # TODO: replace this
-    return (
+    avg = (
         config.WEIGHT_MODEL_SIGNAL * model_score
         + config.WEIGHT_STYLE_SIGNAL * style_score
     )
+    if min(model_score, style_score) < config.AGREEMENT_GATE:
+        avg = min(avg, config.AI_THRESHOLD - 0.01)
+    return avg
 
 
 def score_to_label(score: float) -> tuple[str, str]:

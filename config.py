@@ -57,6 +57,11 @@ DETECTOR_MAX_TOKENS = 400
 WEIGHT_MODEL_SIGNAL = 0.5
 WEIGHT_STYLE_SIGNAL = 0.5
 
+# An "ai" result needs BOTH signals at or above this. If either is lower, the
+# combined score is capped just under AI_THRESHOLD, so the best the text can
+# get is "unsure". Protects plain human writers from a single misreading signal.
+AGREEMENT_GATE = 0.7
+
 
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────
 # Where one label becomes another. Scores run 0.0 (confidently human) to 1.0
