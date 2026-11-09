@@ -345,25 +345,66 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## Rate Limiting
 
-**My limits:** **_ per minute, _** per day
+**My limits:** 5 per minute, 50 per day
 
 **Why those numbers and not others:**
 
-<!-- Think about two people: a real writer submitting their own work a few
-     times an hour, and a script sending a thousand variations to map your
-     thresholds. Your numbers have to be liveable for the first and hostile to
-     the second. -->
+The limit counts requests to `POST /submit`, not words: a one-word text and a
+5000-character essay each use one request. A real writer pastes in a piece,
+waits for the answer, reads it, and maybe revises and tries again, so a few
+requests an hour is typical and one every 30 seconds is already fast. Ten a
+minute is more than a person needs. Five a minute still
+leaves room for a retry after a typo, and 50 a day is well above how many pieces
+a writer would check in one sitting. A script mapping my thresholds with
+hundreds of variations hits the minute limit after five requests and has to
+slow to a crawl. Each request also runs a language model on my laptop, so a
+tighter limit protects the service too.
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+**What a caller counts as:** the `creator_id` in the request body, and the
+caller's IP address when there isn't one (`app.py::rate_limit_key`). Per
+creator is fairer to a household or classroom sharing one address. The weakness
+is that the caller chooses their own `creator_id`, so a script that sends a new
+one on every request gets a fresh count each time and is never limited. Limiting
+by address would block that, but would treat many people behind one address as
+one caller. I kept per creator and know it doesn't stop that attack.
 
 **The run of status codes when I pushed past it:**
 
-<!-- python run_attacks.py --flood 15 -->
+```
+$ python run_attacks.py --flood 15
+15 submissions as 'flood_tester' against http://127.0.0.1:5000
 
+  [ 1/15] 200
+  [ 2/15] 200
+  [ 3/15] 200
+  [ 4/15] 200
+  [ 5/15] 200
+  [ 6/15] 429
+  [ 7/15] 429
+  [ 8/15] 429
+  [ 9/15] 429
+  [10/15] 429
+  [11/15] 429
+  [12/15] 429
+  [13/15] 429
+  [14/15] 429
+  [15/15] 429
+
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+10 of 15 were rate limited.
 ```
 
+Rejected requests still leave a trace in the log:
+
+```json
+{
+  "creator_id": "flood_tester",
+  "event": "rejected",
+  "limit": "5 per 1 minute",
+  "reason": "rate_limited",
+  "status": "rejected",
+  "timestamp": "2026-11-09T18:31:30+00:00"
+}
 ```
 
 ---
