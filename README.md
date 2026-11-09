@@ -933,6 +933,63 @@ The first three bodies (missing `text`, `text: null`, empty string) show `status
 
 **Diagnoses**
 
+Scores below are `model_score` / `style_score` from `results/attack_run_2026-11-09_1247.md` and `results/run_2026-11-09_1550_before.md`.
+
+#### Criterion 5 (bad input) — missed in 3/3 trials
+
+**Stage: the route (`app.py::submit`).** The route does no validation. It does `payload = request.get_json(silent=True) or {}`, takes `text` and `creator_id` as they are, and passes `text` straight to `detector.model_signal`. Nothing rejects bad input before a signal sees it, so each case fails differently:
+
+- Missing `text`, `text: null` and empty body all reach `text = None`, and the tokenizer raises `ValueError: You need to specify either text or text_target` (RQ01, RQ05, RQ08, RQ09). In the eval these show as `JSONDecodeError` because Flask answered with an HTML 500 page.
+- An empty string and a one-character string reach `detector.perplexity`, which raises `ValueError: Text is too short to score` (criterion 5's empty string, MF02). The route never catches it.
+- Whitespace-only text is never stripped, so it is scored: `model_score` 0.0, `style_score` 1.0, label `unsure`, 200.
+- Text over 5,000 characters has no length cap. The 5,500-character `"word word …"` body scored 0.9975 / 0.9995 and was labelled `ai` at 0.9985, 200.
+
+#### Attacks that crashed the service (9 auto-BROKE)
+
+All nine are the same stage and mechanism as criterion 5: **the route** trusts the payload shape and type.
+
+| Attacks                | Mechanism                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RQ01, RQ05, RQ08, RQ09 | `text` is `None` (missing key, null, unparseable body, empty body). `get_json(silent=True)` swallows the parse error and the tokenizer raises.                      |
+| RQ07                   | Body is a JSON array. `payload` is a non-empty list, so `or {}` doesn't replace it and `payload.get` raises `AttributeError: 'list' object has no attribute 'get'`. |
+| RQ03, RQ12             | `text` is a number or nested object. Nothing checks `isinstance(text, str)`, and the tokenizer raises `ValueError: text input must be of type str`.                 |
+| RQ04, MF02             | `text` is a list or a single character. The tokenizer accepts the list, and `perplexity` raises `Text is too short to score`. The route doesn't catch it.           |
+
+RQ10 and RQ11 were marked HELD, but they came back 429 from the rate limiter, not from validation. The route never ran for them, so they are untested.
+
+#### Bad input that scored 200 and shouldn't have (script said HELD)
+
+These got a label instead of a rejection. The route lets them through, and the signals and combining rule then turn them into a confident answer.
+
+- **MF06 (emoji only, `ai` 0.9985) and MF07 (Arabic, `ai` 0.9532): signal two, then the combining rule.** `stylometry.words()` matches only `[a-z0-9']+`, so these texts have zero words. `type_token_ratio` and `punctuation_density` return 0.0 for "no words", which `style_signal` flips to maximum AI, so `style_score` is 1.0. Signal one (0.9969 and 0.9064) also scores them as predictable. Both signals clear `AGREEMENT_GATE` (0.7), so the gate passes them as agreement.
+- **MF08 (60,000 characters of ordinary diary writing, `ai` 0.9084): signal two.** `style_score` is 0.8292 because `type_token_ratio` falls as text gets longer, which the function's own docstring warns about. Signal one only reads the first 400 tokens (`DETECTOR_MAX_TOKENS`) and gave 0.9876. The route has no length cap.
+- **MF05 (one very long word, 0.64) and MF01/MF04 (whitespace and punctuation only):** the same zero-word defaults in signal two. MF05 only stays `unsure` because its `style_score` is 0.5, under the gate.
+
+#### Evasion attacks that got AI text under the `ai` line (EV01–EV09)
+
+The attack script marked all nine HELD because the service answered 200. But only EV10 was labelled `ai`. EV10 repeats a stanza, which is the one case where cheap structure helps the detector. The other nine were all pushed into `unsure`, so the evasions somewhat worked.
+
+**Pattern, and the stage: the combining rule (`scoring.py::combine_signals`).** It only allows `ai` when both signals are at or above 0.7. That was my deliberate protection for human writers, but it means an evader only has to beat one signal. Whichever signal was weakened, the score is capped at 0.64.
+
+| Attack                                      | model / style   | Signal that moved, and why                                                                                                                                                   |
+| ------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EV01 typos                                  | 0.1635 / 0.6092 | **Signal one.** The typos made rare tokens gpt2 can't predict, so perplexity rose and `model_score` collapsed. I had expected signal two (type-token ratio) to take the hit. |
+| EV02 broken-up sentences                    | 0.5943 / 0.3983 | **Signal two.** `sentence_length_spread` rose.                                                                                                                               |
+| EV03 pasted quotation                       | 0.6662 / 0.4843 | **Signal two.** The quotation changed sentence spread and vocabulary variety.                                                                                                |
+| EV04 unusual words                          | 0.6114 / 0.6048 | **Signal one** (rare words raise perplexity). Signal two also dropped to 0.6048.                                                                                             |
+| EV05 heavy edit                             | 0.3212 / 0.4375 | Both signals.                                                                                                                                                                |
+| EV06 one very long, one very short sentence | 0.5727 / 0.3732 | **Signal two.** The length spread term was maxed out.                                                                                                                        |
+| EV07 punctuation padding                    | 0.5862 / 0.1804 | **Signal two.** `punctuation_density` is capped at 0.25 in `style_signal`, so padding zeroes that term.                                                                      |
+| EV08 text below the token window            | 0.2452 / 0.5724 | **Signal one.** A very short text has no context for gpt2, so perplexity is high.                                                                                            |
+| EV09 human opening bolted on                | 0.7042 / 0.5018 | **Signal two.** It measures the whole text, so the human paragraph dilutes it. Signal one stayed above 0.7.                                                                  |
+
+Signal two is the cheaper one to beat (EV02, EV03, EV06, EV07, EV09). It is also the one that measures shape without reading, which is the blind spot I named in Milestone 1.
+
+#### Held, with a note
+
+- **False positives (FP02–FP07) all scored exactly 0.64.** Signal one scored 0.74–0.88 on careful, plain human writing (FP03: 0.8051). Only the gate stopped these from being `ai`, because signal two stayed under 0.7 (0.56–0.67), and the cap is 0.01 below the threshold. Criterion 1 is met because of the combining rule, not because signal one is accurate. This is the same mechanism as FP03 above.
+- **Prompt injection (PI01–PI06) and flooding (FL01) held.** The detector is gpt2 perplexity plus text statistics, so it never follows instructions in the text. The flood was cut off by the rate limiter after 5 requests.
+
 <!-- For each miss AND each broken attack: the stage and the mechanism.
 
      Your service has five stages: the route, signal one, signal two, the
