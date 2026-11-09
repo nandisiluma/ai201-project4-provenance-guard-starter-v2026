@@ -132,17 +132,36 @@ Social media has changed how people talk. It lets friends stay in touch, but it 
 
 ## Test texts
 
-**Human**
-'Effective communication is a cornerstone of successful teamwork. When team members share information openly, they build trust and foster collaboration. Furthermore, clear communication helps to minimize misunderstandings and ensures that everyone is aligned on goals. By actively listening and providing constructive feedback, individuals can contribute to a positive and productive work environment. In conclusion, prioritizing communication is essential for achieving long-term organizational success.'
+Four deliberately chosen inputs, each sent through `POST /submit`. Scores are
+model / style / combined.
 
-**AI**
-"Time management is an essential skill that helps students achieve their goals. By creating a consistent schedule, students can balance their academic responsibilities and personal interests. Furthermore, setting clear priorities allows individuals to use their time effectively and reduce stress."
+**Clearly human** — 0.31 / 0.26 / 0.29 → `human`
 
-**Formal Human**
-The committee convened on Tuesday to consider the proposed amendments to the municipal zoning ordinance. After extended deliberation, it was resolved that the residential density limits would remain unchanged, pending a further review of infrastructure capacity. Several members expressed reservations regarding the projected burden on existing water and sewage services; these concerns will be addressed in the subsequent report, which is expected before the close of the fiscal year.
+> Okay so — the dog ate my sandwich. Not a metaphor. Actual sandwich, actual dog (Biscuit, a menace). I turned around for ten seconds to answer the door and when I came back there was just a crust and a very guilty face. Dinner was cereal. Again.
 
-**Slightly-edited AI**
-Remote work has changed how many people think about their jobs. It offers flexibility and saves commuting time, but it can also blur the line between work and home. Some people love it. Others miss the office more than they expected, honestly. Companies are still working out what a good balance looks like, and I suspect they will be for a while yet.
+**Clearly AI** — 0.86 / 0.70 / 0.78 → `ai`
+
+> Technology plays an important role in modern education. It helps students learn new skills and access useful information. It also helps teachers share lessons and track student progress. Technology makes learning more engaging and more accessible for everyone. It is important for schools to use technology in a thoughtful way. This helps students prepare for the future and succeed in their careers.
+
+**Formal human** — 0.66 / 0.50 / 0.58 → `unsure`
+
+> The committee convened on Tuesday to consider the proposed amendments to the municipal zoning ordinance. After extended deliberation, it was resolved that the residential density limits would remain unchanged, pending a further review of infrastructure capacity. Several members expressed reservations regarding the projected burden on existing water and sewage services; these concerns will be addressed in the subsequent report, which is expected before the close of the fiscal year.
+
+**Lightly-edited AI** — 0.67 / 0.47 / 0.57 → `unsure`
+
+> Remote work has changed how many people think about their jobs. It offers flexibility and saves commuting time, but it can also blur the line between work and home. Some people love it. Others miss the office more than they expected, honestly. Companies are still working out what a good balance looks like, and I suspect they will be for a while yet.
+
+**What surprised me.** A more formal AI paragraph ("Effective communication is a
+cornerstone of successful teamwork...") scored model 0.82 but style only 0.54,
+and ended at 0.64 — "unsure", not `ai`. Printing the two signals separately
+showed the style signal was the one that was off: its vocabulary measure reads
+varied, formal wording as human, and the agreement gate (0.7) then stopped the
+model signal from accusing on its own. The clearly-AI text above reaches `ai`
+only because it uses short, even sentences, repeated words and plain
+punctuation, and that is also how a plain human writer can sound. A short plain
+human paragraph ("I like my dog. He is brown and he is big...") scored model
+0.85 and style 0.69, just under the gate, so it stays at "unsure" only
+narrowly.
 
 ## Label Variants
 
@@ -151,17 +170,19 @@ Remote work has changed how many people think about their jobs. It offers flexib
 
      Write them for someone who has never heard the word "threshold". -->
 
-| Label                 | Score range | The exact text a reader sees |
-| --------------------- | ----------- | ---------------------------- |
-| high-confidence human |             |                              |
-| unsure                |             |                              |
-| high-confidence AI    |             |                              |
+| Label                 | Score range | The exact text a reader sees                                                                                                                                                                       |
+| --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| high-confidence human | 0.00 – 0.35 | "We think this was probably written by a person."                                                                                                                                                  |
+| unsure                | 0.35 – 0.65 | "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it." |
+| high-confidence AI    | 0.65 – 1.00 | "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it."                                              |
 
 **Why I worded the "unsure" one this way:**
 
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
+
+We're not accusing them outright and also letting them know that they can appeal.
 
 ---
 
@@ -180,17 +201,17 @@ Remote work has changed how many people think about their jobs. It offers flexib
 ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "The weather is choppy", "creator_id": "A253"}'
+  -d '{"text": "I like my dog. He is brown and he is big. We walk every day after school. He likes the park. I give him food and water. He sleeps on my bed. He is my best friend.", "creator_id": "sample_writer"}'
 ```
 
 ```json
 {
-  "confidence": 0.5,
-  "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
+  "confidence": 0.64,
+  "content_id": "565a35cc-fa71-4381-b0ab-8af41bb98d54",
   "guess": "unsure",
-  "label": "PLACEHOLDER label",
-  "model_score": 0.2013,
-  "style_score": 0.5
+  "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+  "model_score": 0.8537,
+  "style_score": 0.6866
 }
 ```
 
@@ -199,17 +220,14 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48", "reasoning": "testing"}'
+  -d '{"content_id": "565a35cc-fa71-4381-b0ab-8af41bb98d54", "reasoning": "I wrote this myself for a class assignment. I write in short, simple sentences."}'
 ```
 
 ```json
 {
-  "error": "not_implemented",
-  "message": "POST /appeal isn't built yet \u2014 see the TODO in app.py.",
-  "you_sent": {
-    "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
-    "reasoning": "testing"
-  }
+  "content_id": "565a35cc-fa71-4381-b0ab-8af41bb98d54",
+  "message": "Your appeal has been recorded and this submission is now under review.",
+  "status": "under_review"
 }
 ```
 
@@ -221,18 +239,37 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ```json
 {
-  "count": 1,
+  "count": 3,
   "entries": [
     {
-      "combined_score": null,
-      "content_id": "857879b3-d5ef-41cb-b243-ddf714d4cf48",
-      "creator_id": "A253",
+      "combined_score": 0.64,
+      "content_id": "838980cd-4274-486a-903d-df8cbf41067d",
+      "creator_id": "clearly_ai",
       "guess": "unsure",
-      "label": "PLACEHOLDER label",
-      "model_score": 0.2013,
+      "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+      "model_score": 0.8239,
       "status": "decided",
-      "style_score": null,
-      "timestamp": "2026-11-03T22:18:21+00:00"
+      "style_score": 0.5411,
+      "timestamp": "2026-11-09T04:59:13+00:00"
+    },
+    {
+      "combined_score": 0.64,
+      "content_id": "565a35cc-fa71-4381-b0ab-8af41bb98d54",
+      "creator_id": "sample_writer",
+      "guess": "unsure",
+      "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+      "model_score": 0.8537,
+      "status": "decided",
+      "style_score": 0.6866,
+      "timestamp": "2026-11-09T05:05:10+00:00"
+    },
+    {
+      "content_id": "565a35cc-fa71-4381-b0ab-8af41bb98d54",
+      "creator_id": "sample_writer",
+      "event": "appeal",
+      "reasoning": "I wrote this myself for a class assignment. I write in short, simple sentences.",
+      "status": "under_review",
+      "timestamp": "2026-11-09T05:05:10+00:00"
     }
   ]
 }
