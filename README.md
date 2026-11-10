@@ -1012,15 +1012,15 @@ Signal two is the cheaper one to beat (EV02, EV03, EV06, EV07, EV09). It is also
 
 I added input validation to the route, `app.py::submit`, and a length limit, `MAX_TEXT_CHARS = 5000`, in `config.py`. Before any signal sees the text, `submit()` now rejects:
 
-| Input | Status | `error` |
-| --- | --- | --- |
-| Body isn't a JSON object (array, unparseable, empty) | 400 | `invalid_body` |
-| `text` missing or null | 400 | `missing_text` |
-| `text` isn't a string (number, list, object) | 400 | `text_not_a_string` |
-| Empty or whitespace-only `text` | 400 | `empty_text` |
-| `text` over 5,000 characters | 413 | `text_too_long` |
-| No English letters or digits (emoji, Arabic, punctuation only) | 422 | `no_readable_text` |
-| Too few tokens for the model to score | 422 | `text_too_short` |
+| Input                                                          | Status | `error`             |
+| -------------------------------------------------------------- | ------ | ------------------- |
+| Body isn't a JSON object (array, unparseable, empty)           | 400    | `invalid_body`      |
+| `text` missing or null                                         | 400    | `missing_text`      |
+| `text` isn't a string (number, list, object)                   | 400    | `text_not_a_string` |
+| Empty or whitespace-only `text`                                | 400    | `empty_text`        |
+| `text` over 5,000 characters                                   | 413    | `text_too_long`     |
+| No English letters or digits (emoji, Arabic, punctuation only) | 422    | `no_readable_text`  |
+| Too few tokens for the model to score                          | 422    | `text_too_short`    |
 
 Each rejection goes through `app.py::_reject`, which writes `audit.log_rejection(...)` and returns the 4xx. A bad request is never scored or labelled, and it still leaves an entry in `/log`:
 
@@ -1042,29 +1042,59 @@ The criterion 5 diagnosis and the "9 auto-BROKE" diagnosis. Both named the route
 
 Produced by `run_attacks.py::main`, saved in `results/attack_run_2026-11-09_1641_after.md`. The criteria table is from `run_eval.py::main`, in `results/run_2026-11-09_1641_after.md`.
 
-| Criterion          | Target | Run 1  | Run 2  | Run 3  | Verdict |
-| ------------------ | ------ | ------ | ------ | ------ | ------- |
-| 1. False positives | 3/3    | MET    | MET    | MET    | MET     |
-| 2. score spread    | 3/3    | MET    | MET    | MET    | MET     |
-| 3. label coverage  | 3/3    | MET    | MET    | MET    | MET     |
-| 4. appeal path     | 3/3    | MET    | MET    | MET    | MET     |
-| 5. bad input       | 3/3    | MET    | MET    | MET    | MET     |
+| Criterion          | Target | Run 1 | Run 2 | Run 3 | Verdict |
+| ------------------ | ------ | ----- | ----- | ----- | ------- |
+| 1. False positives | 3/3    | MET   | MET   | MET   | MET     |
+| 2. score spread    | 3/3    | MET   | MET   | MET   | MET     |
+| 3. label coverage  | 3/3    | MET   | MET   | MET   | MET     |
+| 4. appeal path     | 3/3    | MET   | MET   | MET   | MET     |
+| 5. bad input       | 3/3    | MET   | MET   | MET   | MET     |
 
-| | Before (`attack_run_2026-11-09_1247.md`) | After (`attack_run_2026-11-09_1641_after.md`) |
-| --- | --- | --- |
-| Attacks that crashed (5xx) | 9 | 0 |
-| Malformed bodies answered with a label | MF06 `ai` 0.9985, MF07 `ai` 0.9532, MF08 `ai` 0.9084, MF01/MF04 scored | none, all rejected 4xx |
-| Criterion 5 | MISSED in 3/3 trials | MET in 3/3 trials |
+|                                        | Before (`attack_run_2026-11-09_1247.md`)                               | After (`attack_run_2026-11-09_1641_after.md`) |
+| -------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------- |
+| Attacks that crashed (5xx)             | 9                                                                      | 0                                             |
+| Malformed bodies answered with a label | MF06 `ai` 0.9985, MF07 `ai` 0.9532, MF08 `ai` 0.9084, MF01/MF04 scored | none, all rejected 4xx                        |
+| Criterion 5                            | MISSED in 3/3 trials                                                   | MET in 3/3 trials                             |
 
 Real output for criterion 5 after the change (`run_eval.py::main`, trial 1, same five bodies as before):
 
 ```json
 [
-  {"status": 400, "error": "missing_text", "guess": null, "label": null, "sent": "{\"creator_id\": \"eval_bad_missing\"}"},
-  {"status": 400, "error": "missing_text", "guess": null, "label": null, "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"},
-  {"status": 400, "error": "empty_text",   "guess": null, "label": null, "sent": "(empty text)"},
-  {"status": 400, "error": "empty_text",   "guess": null, "label": null, "sent": "   \n\t  "},
-  {"status": 413, "error": "text_too_long", "guess": null, "label": null, "sent": "word word word word word word word word word word word word word word "}
+  {
+    "status": 400,
+    "error": "missing_text",
+    "guess": null,
+    "label": null,
+    "sent": "{\"creator_id\": \"eval_bad_missing\"}"
+  },
+  {
+    "status": 400,
+    "error": "missing_text",
+    "guess": null,
+    "label": null,
+    "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"
+  },
+  {
+    "status": 400,
+    "error": "empty_text",
+    "guess": null,
+    "label": null,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 400,
+    "error": "empty_text",
+    "guess": null,
+    "label": null,
+    "sent": "   \n\t  "
+  },
+  {
+    "status": 413,
+    "error": "text_too_long",
+    "guess": null,
+    "label": null,
+    "sent": "word word word word word word word word word word word word word word "
+  }
 ]
 ```
 
@@ -1083,10 +1113,32 @@ It did not change anything for real text. The false-positive attacks (FP02–FP0
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
+Input validation closed every crash and every malformed-input case. The attack run now has 0 crashes and criterion 5 is met. What is still open:
+
+**1. Evasions EV01–EV09 still get AI text under the `ai` label (scored `unsure`, 0.38–0.61).**
+- **Stage and mechanism:** the combining rule needs both signals at 0.7 or higher to say `ai`, so weakening one signal is enough. Typos and unusual words pull down signal one. Sentence splitting, quotations and punctuation padding pull down signal two.
+- **What I'd do:** make signal two harder to move, for example by dropping the capped punctuation term that padding can zero out, and by scoring sentence spread on a median instead of a standard deviation. I'd also normalize typos before signal one runs.
+- **Why I stopped:** every fix that makes the score easier to push toward `ai` also pushes FP02–FP07 toward `ai`. I had no time to test that trade, and I won't risk accusing a real writer for it.
+
+**2. Human writing is protected by one number.**
+- FP02–FP07 all score exactly 0.64, which is the cap, 0.01 under the `ai` threshold. Signal one gave them 0.74–0.88, so it is wrong about all six. Only the gate stops an accusation.
+- **What I'd do:** replace gpt2 perplexity, or add a third signal that doesn't punish plain vocabulary.
+- **Why I stopped:** that is a redesign of signal one, not a tuning change.
+
+**3. Non-English text is now rejected, not judged.**
+- `no_readable_text` rejects any text with no English letters or digits (MF07, the Arabic sample). That is the right call for a detector that can't score it, but a writer in another language gets an error and no appeal path, because no `content_id` is created.
+- **What I'd do:** accept these and return `unsure` with a label saying the check doesn't support this language.
+- **Why I stopped:** it needs a decision about what the label should say.
+
+**4. RQ10 and RQ11 are still untested.**
+- Both came back 429 from the rate limiter in the after run, so the route never ran for them. I haven't confirmed that a form-encoded body or a wrong content type is rejected cleanly. The code should return `invalid_body`, since `get_json(silent=True)` returns `None`.
+- **What I'd do:** re-run them after a minute, or with rate limiting off.
+
+**5. Weak spots in the eval itself.** Criterion 4 appeals each ID once. I haven't tested appealing the same `content_id` twice, which `appeal()` would record twice.
+
 **The trade I'd make if this ran for real:**
 
-<!-- Two sentences. Fewer wrong accusations means more AI text getting through.
-     Say which way you'd go and WHO PAYS FOR IT. -->
+I would keep the same logic and accept that some AI text, including every evasion above, gets through as `unsure`, because a false `ai` label costs a real writer their reputation, and a missed detection costs very little. The people who pay for it are the readers and the honest writers on the site, who compete with undisclosed AI text, and I'd accept that cost over accusing one person wrongly.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
