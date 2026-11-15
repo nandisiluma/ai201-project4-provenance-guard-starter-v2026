@@ -1116,21 +1116,25 @@ It did not change anything for real text. The false-positive attacks (FP02–FP0
 Input validation closed every crash and every malformed-input case. The attack run now has 0 crashes and criterion 5 is met. What is still open:
 
 **1. Evasions EV01–EV09 still get AI text under the `ai` label (scored `unsure`, 0.38–0.61).**
+
 - **Stage and mechanism:** the combining rule needs both signals at 0.7 or higher to say `ai`, so weakening one signal is enough. Typos and unusual words pull down signal one. Sentence splitting, quotations and punctuation padding pull down signal two.
 - **What I'd do:** make signal two harder to move, for example by dropping the capped punctuation term that padding can zero out, and by scoring sentence spread on a median instead of a standard deviation. I'd also normalize typos before signal one runs.
 - **Why I stopped:** every fix that makes the score easier to push toward `ai` also pushes FP02–FP07 toward `ai`. I had no time to test that trade, and I won't risk accusing a real writer for it.
 
 **2. Human writing is protected by one number.**
+
 - FP02–FP07 all score exactly 0.64, which is the cap, 0.01 under the `ai` threshold. Signal one gave them 0.74–0.88, so it is wrong about all six. Only the gate stops an accusation.
 - **What I'd do:** replace gpt2 perplexity, or add a third signal that doesn't punish plain vocabulary.
 - **Why I stopped:** that is a redesign of signal one, not a tuning change.
 
 **3. Non-English text is now rejected, not judged.**
+
 - `no_readable_text` rejects any text with no English letters or digits (MF07, the Arabic sample). That is the right call for a detector that can't score it, but a writer in another language gets an error and no appeal path, because no `content_id` is created.
 - **What I'd do:** accept these and return `unsure` with a label saying the check doesn't support this language.
 - **Why I stopped:** it needs a decision about what the label should say.
 
 **4. RQ10 and RQ11 are still untested.**
+
 - Both came back 429 from the rate limiter in the after run, so the route never ran for them. I haven't confirmed that a form-encoded body or a wrong content type is rejected cleanly. The code should return `invalid_body`, since `get_json(silent=True)` returns `None`.
 - **What I'd do:** re-run them after a minute, or with rate limiting off.
 
@@ -1172,6 +1176,63 @@ I would keep the same logic and accept that some AI text, including every evasio
 
      Do not delete and recreate this repository.
      ═════════════════════════════════════════════════════════════════════ -->
+<!-- ═════════════════════════════════════════════════════════════════════
+
+
+UNIT 9 : Improving Provernance Guard
+
+
+═════════════════════════════════════════════════════════════════════ -->
+
+## The Shape
+
+**What the project is.** Provenance Guard is a small Flask web service that
+guesses whether a piece of writing was produced by a person or by an AI, and
+says so in a label a reader can see. A writer or a platform sends
+`POST /submit` with `{text, creator_id}`. The service scores the text with two
+signals that measure different things:
+
+- **Signal one**, `detector.py`: how predictable the text is to a local gpt2
+  model (perplexity).
+- **Signal two**, `stylometry.py`: the shape of the text, such as sentence-length
+  spread, vocabulary range and punctuation, without reading for meaning.
+
+`scoring.py` combines them into one confidence. An `ai` result needs both signals
+at 0.7 or higher, so one misreading signal can't accuse a human writer alone.
+The label (`ai`, `human` or `unsure`), both signal scores and a `content_id` come
+back in the response and go into the append-only audit log (`audit.py`). A writer
+who disagrees can `POST /appeal` with that `content_id`, which records the appeal
+beside the original decision and moves it to `under_review`. Requests are
+validated before any signal sees them, and `/submit` is rate limited. The design
+rests on one trade: a wrong accusation of a real writer costs far more than a
+missed AI text, so the system prefers `unsure` to a wrong `ai`.
+
+**What we're changing.** Unit 9 takes this working system and improves it one
+step at a time, with evidence for each step. The focus area is rate limiting.
+Today the limit is keyed on the `creator_id` the caller sends, so a script that
+rotates it gets a fresh quota every request and is never limited. The change is to close that bypass without
+punishing real writers who share an address, then show before and after
+results.
+
+**What's out of scope.** Three things I considered and am not doing:
+
+- **I'm not touching the detection signals or the combining rule.** The weak
+  spots in "What's Still Broken" (the evasions EV01–EV09, and signal one scoring
+  plain human writing at 0.74–0.88) are real, but fixing them means redesigning
+  signal one or adding a third signal, and that risks pushing FP02–FP07 toward
+  `ai`. The scores and labels must come out identical before and after this
+  change, and the attack run should show it.
+- **I'm not adding accounts or authentication.** The only way to fully stop one
+  person from using many `creator_id`s is to make a `creator_id` something the
+  caller can't invent, such as a login or an API key. That is a different system
+  with its own storage, signup and abuse problems. I'm limiting by what the
+  server can see, the caller's address, and I accept that an attacker with many
+  addresses still gets a quota per address.
+- **I'm not changing the storage or deployment.** Counts stay in memory
+  (`memory://`), so a restart still clears them. Moving them to Redis, or
+  putting the service behind a proxy and trusting `X-Forwarded-For`, is a
+  deployment change. It is a separate piece of work from closing the
+  `creator_id` bypass, so it stays out of this change.
 
 ---
 
