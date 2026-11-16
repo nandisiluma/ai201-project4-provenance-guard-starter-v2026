@@ -31,7 +31,7 @@ than a missed detection"_ is a real answer.
 | The appeal path | Does an appeal always change status and always get recorded?  |
 | Bad input       | What happens when `text` is missing, empty, or enormous?      |
 
-Two things worth knowing before you pick numbers:
+Two things worth knowing before you pick numbers:/.
 
 - **The expensive mistake is one-sided.** Missing some AI text costs the site a
   little. Accusing a real writer costs that person a lot. A criterion that
@@ -133,3 +133,95 @@ A made-up label on input that isn't real text could read as an accusation agains
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+<!--
+UNIT 9: Additional criteria for improved rate-limiting
+-->
+
+# Unit 9 — rate-limiting criteria
+
+Five more criteria, each one checked by a test in `test_rate_limit.py`. The
+limits they refer to are in `config.py`: 5 per minute for one `creator_id`, and
+20 per minute for one address. Each target has to hold in all 3 trials, with the
+limiter reset between trials.
+
+---
+
+## 6. Rotating `creator_id` does not bypass the limit
+
+40 submissions from one address, each with a different `creator_id`, get exactly
+20 `200` responses and 20 `429` responses, in each of 3 trials.
+
+**Why this target:**
+
+This is the bug the unit fixes. Before the address cap, the same 40 requests all
+got `200`, because the caller chose their own `creator_id` and every one counted
+as a new writer. "Exactly 20" matters in both directions: more than 20 means the
+bypass is still open, fewer means real requests were refused early.
+
+---
+
+## 7. One `creator_id` is still held to its own limit
+
+40 submissions under one `creator_id` get exactly 5 `200` responses and 35 `429`
+responses, in each of 3 trials.
+
+**Why this target:**
+
+The per-writer limit is the tighter of the two (5 against 20) and is what keeps
+one person from hammering the model, which costs about 0.46 CPU-seconds a run.
+Adding the address cap must not loosen it, so this is the control for criterion
+6: if the address check quietly replaced the creator check, this would drop from
+5 to 20 and I would see it.
+
+---
+
+## 8. Writers who share an address are not punished
+
+4 different `creator_id`s from one address, each sending 5 submissions (the
+per-writer limit), all 20 get `200`, with no `429`, in each of 3 trials.
+
+**Why this target:**
+
+A classroom or a household shares one address. Four writers each staying inside
+their own limit have done nothing wrong, so none of them should be turned away
+because of the others. Four writers at 5 each is 20, which sits exactly on the
+address cap, so this also shows the cap is set high enough for a small group
+and no higher.
+
+---
+
+## 9. Every `429` tells the caller how to recover
+
+In 100% of `429` responses I sample, including one from each limit, the
+response has a `Retry-After` header that is a whole number from 1 to 61. The
+body has `error: "rate_limited"`, a `retry_after` equal to the header, `scope`
+set to `creator` or `address` to match the limit that tripped, and
+`evaluated: false`. The body has no `label` or `guess`.
+
+**Why this target:**
+
+A bare "try again shortly" makes a script retry at once and stay blocked, and
+leaves a real writer not knowing how long to wait or which limit they hit. The
+bigger risk is a rejection being read as a verdict: a text that was never scored
+must not look like a text that was cleared, so `evaluated: false` with no label
+is part of the target, not decoration. 61 is the upper bound because the reset
+time is rounded up and measured at 61 for a one-minute window.
+
+---
+
+## 10. Every `429` leaves a record
+
+In 3 trials of the 40-request runs above, the number of `rate_limited` entries
+in the audit log equals the number of `429` responses (20 and 35), and each entry
+has `scope`, `retry_after`, `duration_ms` and the `creator_id` sent. There are no
+rejections without a record and no records without a rejection.
+
+**Why this target:**
+
+An attack that shows up only as an absence is one I would never find. A flood of
+rejected requests that left no trace would look the same as a quiet afternoon.
+The test only checks that one entry exists, so I set the stricter target of the
+counts matching exactly: that is what shows no `429` slips through unlogged. I
+checked it by hand and the counts match (20 of 20 and 35 of 35 in each trial);
+`test_rate_limit.py` doesn't assert the equality yet.
