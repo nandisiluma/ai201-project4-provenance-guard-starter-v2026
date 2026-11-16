@@ -210,6 +210,7 @@ Run with the service already started in another terminal.
 | `python run_attacks.py --flood 15` | Send 15 submissions from one `creator_id` and print the status codes (`200`s then `429`s). Writes `results/flood_<date>.md` |
 | `python run_attacks.py --set attack_set` | Run the attack set. **Most rows will return `429` from one address**, because of the address limit |
 | `python run_eval.py --label before` | Run the five criteria, three trials |
+| `python measure_cost.py` | Time 10 real runs (wall and CPU seconds) and trigger each failure path. Needs no server. Writes `logs/instrumentation_run.jsonl` and `results/cost_run.md`, not the real audit log |
 | `python -m unittest test_rate_limit -v` | The rate-limit tests. They stub the model and use a temporary log, so they need no server and don't touch `logs/audit.jsonl` |
 
 > The scripts and the service both write to `logs/` and `results/`. Those

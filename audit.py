@@ -112,6 +112,23 @@ def log_rejection(creator_id: str, reason: str, **extra) -> dict:
     })
 
 
+def log_error(creator_id: str, reason: str, **extra) -> dict:
+    """
+    Record a run that crashed (an exception, not a refused input).
+
+    Separate from `log_rejection` so a failure of the service itself can be
+    told apart from a request the service was right to turn away.
+    """
+    return _append({
+        "timestamp": _now(),
+        "creator_id": creator_id,
+        "event": "error",
+        "status": "error",
+        "reason": reason,
+        **extra,
+    })
+
+
 def _append(entry: dict) -> dict:
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
     line = json.dumps(entry, ensure_ascii=False)

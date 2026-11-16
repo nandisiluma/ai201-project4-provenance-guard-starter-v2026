@@ -1185,6 +1185,110 @@ UNIT 9 : Improving Provernance Guard
 
 ═════════════════════════════════════════════════════════════════════ -->
 
+## Instrumentation
+
+Every request to `/submit` leaves one structured record, a JSON object on one
+line of the audit log (`logs/audit.jsonl`, written by `audit.py`). It is a file
+you can read back with `GET /log` or `audit.read_entries()`, not a `print()`.
+Successes and failures share the same trace fields, so a run is never visible
+only as an absence.
+
+| Field | Where | What it is |
+|---|---|---|
+| `timestamp` | all | UTC time the record was written |
+| `input_preview`, `input_chars` | all | First 100 characters of the submitted `text`, and its full length (`null` when there was no usable text) |
+| `guess`, `label`, `model_score`, `style_score`, `combined_score` | decisions | The output: what the system decided and the three scores behind it |
+| `duration_ms` | all | Wall time of the whole request, from the first line of the request to the log write |
+| `model_ms`, `style_ms` | decisions | Time in signal one (gpt2) and signal two, so a slow run can be pinned to a stage |
+| `event`, `status`, `reason`, `http_status` | rejections and errors | `rejected` = the service refused the input (400/413/422/429). `error` = the service itself failed (500/503), with `error_type` and `error_message` |
+| `scope`, `retry_after` | 429s | Which limit tripped and how long to wait |
+
+Anything the service crashes on is caught by one error handler. It logs an
+`error` record and returns `{"error": ..., "evaluated": false}`, where it used
+to return a bare 500 and leave nothing behind.
+
+`python measure_cost.py` produced the records below. It writes to
+`logs/instrumentation_run.jsonl`, not the real audit log, so it doesn't add to
+the attack evidence. The real model ran; the texts are 10 different pieces of
+writing.
+
+**Ten successful runs** (`cost_probe_1` to `cost_probe_10`):
+
+```json
+{"timestamp": "2026-11-16T21:28:20+00:00", "content_id": "af388215-3747-4445-8c1d-67c6b6ab52d4", "creator_id": "cost_probe_1", "guess": "human", "model_score": 0.3099, "style_score": 0.2609, "combined_score": 0.2854, "label": "We think this was probably written by a person.", "status": "decided", "model_ms": 118.6, "style_ms": 0.2, "duration_ms": 119.4, "input_chars": 244, "input_preview": "Okay so — the dog ate my sandwich. Not a metaphor. Actual sandwich, actual dog (Biscuit, a menace). "}
+{"timestamp": "2026-11-16T21:28:20+00:00", "content_id": "4f275d0c-3486-4a98-adbc-aab1cecc4f30", "creator_id": "cost_probe_2", "guess": "ai", "model_score": 0.8579, "style_score": 0.7041, "combined_score": 0.781, "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 135.1, "style_ms": 0.2, "duration_ms": 136.0, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "65bcbd6d-4df8-4421-af8e-4df6c67ebda3", "creator_id": "cost_probe_3", "guess": "unsure", "model_score": 0.6591, "style_score": 0.5049, "combined_score": 0.582, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 155.6, "style_ms": 0.3, "duration_ms": 156.6, "input_chars": 485, "input_preview": "The committee convened on Tuesday to consider the proposed amendments to the municipal zoning ordina"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "d01d5569-bb7a-40e2-8d08-a39e2c90bea5", "creator_id": "cost_probe_4", "guess": "unsure", "model_score": 0.6698, "style_score": 0.4688, "combined_score": 0.5693, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 143.0, "style_ms": 0.2, "duration_ms": 144.0, "input_chars": 351, "input_preview": "Remote work has changed how many people think about their jobs. It offers flexibility and saves comm"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "68ae94e7-787a-409c-85f3-191739114a16", "creator_id": "cost_probe_5", "guess": "unsure", "model_score": 0.8668, "style_score": 0.6347, "combined_score": 0.64, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 96.4, "style_ms": 0.2, "duration_ms": 97.2, "input_chars": 144, "input_preview": "I like my dog. He is brown and he is big. He likes to run in the park. We play with a ball every day"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "a3241cee-ceb9-450a-9391-de753ced8428", "creator_id": "cost_probe_6", "guess": "unsure", "model_score": 0.7814, "style_score": 0.5737, "combined_score": 0.64, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 91.1, "style_ms": 0.2, "duration_ms": 92.0, "input_chars": 234, "input_preview": "Effective communication is a cornerstone of successful teamwork. When team members share information"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "e5993ba7-1534-46f3-b1a7-243692315be9", "creator_id": "cost_probe_7", "guess": "unsure", "model_score": 0.4231, "style_score": 0.3258, "combined_score": 0.3744, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 101.6, "style_ms": 0.2, "duration_ms": 102.6, "input_chars": 213, "input_preview": "My grandmother kept a tin of buttons she never used, and when she died we found out why: every butto"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "6fa22604-5f9e-4ac4-8577-29fe574b05c5", "creator_id": "cost_probe_8", "guess": "unsure", "model_score": 0.8112, "style_score": 0.5175, "combined_score": 0.64, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 166.4, "style_ms": 0.2, "duration_ms": 167.1, "input_chars": 295, "input_preview": "The results indicate a statistically significant improvement in retention among participants who rec"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "e7966c49-8495-4d83-af44-56a37969c61e", "creator_id": "cost_probe_9", "guess": "unsure", "model_score": 0.3141, "style_score": 0.4486, "combined_score": 0.3813, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 97.8, "style_ms": 0.2, "duration_ms": 98.6, "input_chars": 216, "input_preview": "Went to the market early, before the heat. Bought peaches, too many, and a loaf that was still warm."}
+{"timestamp": "2026-11-16T21:28:21+00:00", "content_id": "9b63194d-87da-4662-aad4-e8c7f64ed37e", "creator_id": "cost_probe_10", "guess": "unsure", "model_score": 0.9511, "style_score": 0.463, "combined_score": 0.64, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 106.2, "style_ms": 0.2, "duration_ms": 107.1, "input_chars": 306, "input_preview": "Climate change is one of the most pressing challenges of our time. It affects ecosystems, economies,"}
+```
+
+**Failed and refused runs**, one per failure path:
+
+```json
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_empty", "event": "rejected", "status": "rejected", "reason": "empty_text", "http_status": 400, "duration_ms": 0.6, "input_chars": 2, "input_preview": "  "}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_missing", "event": "rejected", "status": "rejected", "reason": "missing_text", "http_status": 400, "duration_ms": 0.5, "input_chars": null, "input_preview": null}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_long", "event": "rejected", "status": "rejected", "reason": "text_too_long", "http_status": 413, "length": 10000, "duration_ms": 0.5, "input_chars": 10000, "input_preview": "word word word word word word word word word word word word word word word word word word word word "}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "anonymous", "event": "rejected", "status": "rejected", "reason": "invalid_body", "http_status": 400, "duration_ms": 0.6, "input_chars": null, "input_preview": null}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_emoji", "event": "rejected", "status": "rejected", "reason": "no_readable_text", "http_status": 422, "duration_ms": 0.8, "input_chars": 7, "input_preview": "🙂🙂🙂 ???"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_detector", "event": "error", "status": "error", "reason": "detector_unavailable", "http_status": 503, "error_type": "DetectorUnavailable", "error_message": "model files missing", "path": "/submit", "duration_ms": 0.7, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_crash", "event": "error", "status": "error", "reason": "internal_error", "http_status": 500, "error_type": "RuntimeError", "error_message": "simulated crash in signal one", "path": "/submit", "duration_ms": 0.4, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T21:28:22+00:00", "creator_id": "fail_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute", "scope": "creator", "retry_after": 60, "duration_ms": 0.5, "input_chars": 144, "input_preview": "I like my dog. He is brown and he is big. He likes to run in the park. We play with a ball every day"}
+```
+
+How these were produced, so they aren't misread: the first five are inputs the
+service correctly refused (empty text, missing text, 10,000 characters, a body
+that is a list not an object, text with no English words). The `429` is the
+sixth request from one `creator_id` in a minute. The two `error` records,
+`detector_unavailable` (503) and `internal_error` (500), were **induced**: the
+script made `detector.model_signal` raise on purpose. I haven't seen the
+detector fail unprompted. The point is that when it does, it leaves a record.
+
+---
+
+## What It Costs
+
+The real cost of this system is compute on my own machine. Nothing is called
+over the network, so API spend is $0 and no tokens are billed. The unit I
+measured is seconds per `/submit` run.
+
+**Result: about 0.12 s of wall time and 0.46 s of CPU time per run, averaged
+over 10 runs.** The first request after a start costs about 8 s extra, because
+it loads the model.
+
+| | Mean | Min | Max |
+|---|---|---|---|
+| Wall time per run | **0.123 s** | 0.093 s | 0.168 s |
+| CPU time per run | **0.455 s** | 0.365 s | 0.616 s |
+
+**How I measured it** (`python measure_cost.py`, output in `results/cost_run.md`):
+
+1. Start the real `gpt2` model on CPU (a Mac, Python 3.12, no GPU).
+2. Send one request and time it on its own. That is the cold start: 8.13 s wall,
+   6.72 s CPU. It is not in the average, because a running service pays it once.
+3. Send 10 different texts (144 to 485 characters, mean 289), one request each,
+   through Flask's test client in the same process, so there is no network time.
+4. For each run, wall time is `time.perf_counter()` around the request, and CPU
+   time is `time.process_time()` over the same span. Average the 10.
+
+CPU time is higher than wall time because torch runs on several threads at once,
+so the process burns more CPU-seconds than the clock shows. If this ran on a
+paid host billed by CPU-seconds, 0.455 is the number to use, and 0.123 is what a
+person waits.
+
+Caveats: the average depends on text length (the longest, 485 characters, took
+0.158 s and the shortest, 144 characters, 0.098 s), the texts are short, a single
+run on one machine isn't a benchmark, and a request that is refused before
+scoring costs under a millisecond (`duration_ms` is 0.4 to 0.8 in the failed
+entries above), so a flood of bad requests is cheap for the service to turn away
+and a flood of valid ones is not.
+
+---
+
 ## The Shape
 
 **What the project is.** Provenance Guard is a small Flask web service that

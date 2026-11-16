@@ -28,7 +28,8 @@ import math
 import time
 import uuid
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 import audit
 import config
@@ -37,6 +38,30 @@ import scoring
 import stylometry
 
 app = Flask(__name__)
+
+
+# ── Instrumentation ───────────────────────────────────────────────────────────
+# Every request, success or failure, leaves one structured record in the audit
+# log with the same trace fields: how long it took and what came in.
+
+@app.before_request
+def _start_clock():
+    g.t0 = time.perf_counter()
+
+
+def _trace_fields():
+    """duration_ms plus a short, safe description of the input."""
+    t0 = getattr(g, "t0", None)
+    fields = {"duration_ms": round((time.perf_counter() - t0) * 1000, 1) if t0 else None}
+    payload = request.get_json(silent=True)
+    text = payload.get("text") if isinstance(payload, dict) else None
+    if isinstance(text, str):
+        fields["input_chars"] = len(text)
+        fields["input_preview"] = text[:100]
+    else:
+        fields["input_chars"] = None
+        fields["input_preview"] = None if text is None else f"<{type(text).__name__}>"
+    return fields
 
 
 # ── Rate limiting — UNIT 8 ────────────────────────────────────────────────────
@@ -128,6 +153,7 @@ if config.RATE_LIMITING_ENABLED:
             limit=str(exc.description),
             scope=scope,
             retry_after=retry_after,
+            **_trace_fields(),
         )
         response = jsonify({
             "error": "rate_limited",
@@ -180,8 +206,37 @@ def health():
 
 def _reject(creator_id, reason, status, message, **extra):
     """Log a rejected request and answer with a 4xx and an `error` field."""
-    audit.log_rejection(creator_id=creator_id, reason=reason, **extra)
+    audit.log_rejection(creator_id=creator_id, reason=reason, http_status=status,
+                        **extra, **_trace_fields())
     return jsonify({"error": reason, "message": message}), status
+
+
+@app.errorhandler(Exception)
+def _unexpected_error(exc):
+    """
+    A crash is a record too, not a silent 500. HTTP errors (404, 405, ...) pass
+    through untouched; anything else is logged with its type and message.
+    """
+    if isinstance(exc, HTTPException):
+        return exc
+    payload = request.get_json(silent=True)
+    creator = payload.get("creator_id") if isinstance(payload, dict) else None
+    unavailable = isinstance(exc, detector.DetectorUnavailable)
+    status = 503 if unavailable else 500
+    audit.log_error(
+        creator_id=creator if isinstance(creator, str) and creator.strip() else "anonymous",
+        reason="detector_unavailable" if unavailable else "internal_error",
+        http_status=status,
+        error_type=type(exc).__name__,
+        error_message=str(exc)[:300],
+        path=request.path,
+        **_trace_fields(),
+    )
+    return jsonify({
+        "error": "detector_unavailable" if unavailable else "internal_error",
+        "message": "The service could not score this text. Nothing was decided.",
+        "evaluated": False,
+    }), status
 
 
 @app.post("/submit")
@@ -266,11 +321,15 @@ def submit():
         return _reject(log_creator, "no_readable_text", 422,
                        "`text` has no words we can analyze (English letters or digits).")
 
+    t_model = time.perf_counter()
     try:
         model_score = detector.model_signal(text)
     except ValueError as exc:  # too few tokens for the model to score
         return _reject(log_creator, "text_too_short", 422, str(exc))
+    model_ms = round((time.perf_counter() - t_model) * 1000, 1)
+    t_style = time.perf_counter()
     style_score = round(stylometry.style_signal(text), 4)
+    style_ms = round((time.perf_counter() - t_style) * 1000, 1)
     combined_score = round(scoring.combine_signals(model_score, style_score), 4)
 
     # Milestone 3, step 4: one ID per submission, shared by the log and the
@@ -287,6 +346,9 @@ def submit():
         style_score=style_score,
         combined_score=combined_score,
         label=label,
+        model_ms=model_ms,
+        style_ms=style_ms,
+        **_trace_fields(),
     )
 
     return jsonify(
