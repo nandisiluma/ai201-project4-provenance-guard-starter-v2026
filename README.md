@@ -126,6 +126,7 @@ Average the two scores with equal weight. A text can only reach the high-confide
 **A case where my two signals split, and what my rule does with it:**
 
 A lightly edited AI paragraph about social media ("Social media has changed how people talk. It lets friends stay in touch, but it can also make people feel left out. Some people post a lot. Others just scroll and never post at all, which is fine too I guess.") scored model 0.70 and style 0.47. The model signal reads it as AI, but the mix of short and long sentences makes the style signal read it as human-like. The average is about 0.59 and the style score is under the gate, so the rule keeps it at "unsure" instead of picking a side, which is what two signals disagreeing should mean.
+
 Lightly edited AI text:
 
 Social media has changed how people talk. It lets friends stay in touch, but it can also make people feel left out. Some people post a lot. Others just scroll and never post at all, which is fine too I guess.
@@ -1207,8 +1208,7 @@ validated before any signal sees them, and `/submit` is rate limited. The design
 rests on one trade: a wrong accusation of a real writer costs far more than a
 missed AI text, so the system prefers `unsure` to a wrong `ai`.
 
-**What we're changing.** Unit 9 takes this working system and improves it one
-step at a time, with evidence for each step. The focus area is rate limiting.
+**What we're changing.** The focus area is rate limiting.
 Today the limit is keyed on the `creator_id` the caller sends, so a script that
 rotates it gets a fresh quota every request and is never limited. The change is to close that bypass without
 punishing real writers who share an address, then show before and after
