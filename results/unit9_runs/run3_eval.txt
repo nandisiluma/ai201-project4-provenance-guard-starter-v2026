@@ -1,0 +1,21 @@
+!! 1 trial(s). The submission asks for three.
+
+
+False positives  (criterion 1)
+  trial 1: unsure, unsure, unsure, unsure, unsure
+
+score spread  (criterion 2)
+    429 on 'Technology plays an important ' - waiting 50s (retry 1)
+  trial 1: ai, human, unsure
+
+label coverage  (criterion 3)
+  trial 1: ai, human, unsure
+
+appeal path  (criterion 4)
+  trial 1: unsure, unsure, unsure, unsure, unsure, —
+
+bad input  (criterion 5)
+  trial 1: —, —, —, —, —
+
+Wrote results/run_2026-11-16_1634_unit9_run3.md
+Commit it. It's the evidence the test actually happened.

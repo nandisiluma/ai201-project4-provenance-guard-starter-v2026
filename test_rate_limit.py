@@ -61,12 +61,13 @@ class RateLimitTests(unittest.TestCase):
               f"{statuses.count(200)} x 200, {statuses.count(429)} x 429")
         self.assertIn(429, statuses, "40 requests from one address were never limited")
         self.assertEqual(statuses.count(200), config.RATE_LIMIT_ADDRESS_PER_MINUTE)
+        self.assertEqual(statuses.count(429), N_REQUESTS - config.RATE_LIMIT_ADDRESS_PER_MINUTE)
 
     def test_single_creator_id_is_limited(self):
         """Control: the existing per-creator limit still works."""
         statuses = self._statuses(lambda i: "one_writer")
         self.assertEqual(statuses.count(200), config.RATE_LIMIT_PER_MINUTE)
-        self.assertIn(429, statuses)
+        self.assertEqual(statuses.count(429), N_REQUESTS - config.RATE_LIMIT_PER_MINUTE)
 
     def test_writers_sharing_an_address_are_not_punished(self):
         """Four real writers behind one address, each within their own limit."""
@@ -110,6 +111,19 @@ class RateLimitTests(unittest.TestCase):
         rejections = [e for e in audit.read_entries() if e.get("reason") == "rate_limited"]
         self.assertTrue(rejections, "no rate_limited entry in the audit log")
         self.assertIn("retry_after", rejections[-1])
+
+    def test_every_429_has_exactly_one_audit_record(self):
+        """Criterion 10: rejections and records match 1:1, in both flows."""
+        for creator_for in (lambda i: f"stranger_{i}", lambda i: "one_writer"):
+            app_module.limiter.reset()
+            config.AUDIT_LOG.write_text("", encoding="utf-8")
+            statuses = self._statuses(creator_for)
+            records = [e for e in audit.read_entries() if e.get("reason") == "rate_limited"]
+            self.assertEqual(len(records), statuses.count(429))
+            for rec in records:
+                for field in ("creator_id", "scope", "retry_after", "duration_ms"):
+                    self.assertIn(field, rec)
+                self.assertIsNotNone(rec["retry_after"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,26 @@
+test_429_tells_the_caller_how_to_recover (test_rate_limit.RateLimitTests.test_429_tells_the_caller_how_to_recover)
+A 429 carries Retry-After, a structured body, and says nothing was evaluated. ... ok
+test_address_limit_is_reported_as_address_scope (test_rate_limit.RateLimitTests.test_address_limit_is_reported_as_address_scope) ... ok
+test_every_429_has_exactly_one_audit_record (test_rate_limit.RateLimitTests.test_every_429_has_exactly_one_audit_record)
+Criterion 10: rejections and records match 1:1, in both flows. ... ok
+test_rejection_is_audited_with_retry_after (test_rate_limit.RateLimitTests.test_rejection_is_audited_with_retry_after) ... ok
+test_rotating_creator_id_from_one_address_is_limited (test_rate_limit.RateLimitTests.test_rotating_creator_id_from_one_address_is_limited)
+A stranger rotating creator_id from ONE address must hit a 429. ... ok
+test_single_creator_id_is_limited (test_rate_limit.RateLimitTests.test_single_creator_id_is_limited)
+Control: the existing per-creator limit still works. ... ok
+test_writers_sharing_an_address_are_not_punished (test_rate_limit.RateLimitTests.test_writers_sharing_an_address_are_not_punished)
+Four real writers behind one address, each within their own limit. ... ok
+test_a_failure_leaves_no_decision_to_appeal (test_failures.FailurePathTests.test_a_failure_leaves_no_decision_to_appeal) ... ok
+test_detector_unavailable_is_a_503 (test_failures.FailurePathTests.test_detector_unavailable_is_a_503) ... ok
+test_error_detail_stays_in_the_log_not_the_response (test_failures.FailurePathTests.test_error_detail_stays_in_the_log_not_the_response) ... ok
+test_every_failure_leaves_an_error_record (test_failures.FailurePathTests.test_every_failure_leaves_an_error_record) ... ok
+test_input_with_no_readable_words_is_refused_not_scored (test_failures.FailurePathTests.test_input_with_no_readable_words_is_refused_not_scored) ... ok
+test_service_recovers_after_a_failure (test_failures.FailurePathTests.test_service_recovers_after_a_failure) ... ok
+test_unexpected_exception_is_a_500_with_no_verdict (test_failures.FailurePathTests.test_unexpected_exception_is_a_500_with_no_verdict) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.308s
+
+OK
+
+  rotating creator_id x40: 20 x 200, 20 x 429

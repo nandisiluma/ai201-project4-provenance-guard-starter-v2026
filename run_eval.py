@@ -25,6 +25,7 @@ import argparse
 import datetime as dt
 import json
 import sys
+import time
 from pathlib import Path
 
 import config
@@ -130,8 +131,21 @@ def main():
             for i, body in enumerate(bodies_for(scenario), 1):
                 preview = describe(body)
                 try:
-                    response = requests.post(f"{args.url}/submit", json=body,
-                                             timeout=args.timeout)
+                    # One address sends everything here, so the address cap can
+                    # 429 part of a run. Wait out Retry-After and resend: the 429
+                    # means "not evaluated", and the criteria are about the answer.
+                    # Every wait is recorded in the report as `retried_429`.
+                    retried = 0
+                    while True:
+                        response = requests.post(f"{args.url}/submit", json=body,
+                                                 timeout=args.timeout)
+                        if response.status_code != 429 or retried >= 5:
+                            break
+                        wait = int(response.headers.get("Retry-After", "60"))
+                        retried += 1
+                        print(f"    429 on '{preview[:30]}' - waiting {wait}s (retry {retried})",
+                              flush=True)
+                        time.sleep(wait)
                     payload = response.json() if response.content else {}
                     appeal = None
                     if scenario.get("appeal") and payload.get("content_id"):
@@ -146,6 +160,7 @@ def main():
                         "model_score": payload.get("model_score"),
                         "style_score": payload.get("style_score"),
                         "label": payload.get("label"),
+                        "retried_429": retried,
                         "sent": preview,
                     })
                 except Exception as exc:  # noqa: BLE001

@@ -1193,15 +1193,15 @@ you can read back with `GET /log` or `audit.read_entries()`, not a `print()`.
 Successes and failures share the same trace fields, so a run is never visible
 only as an absence.
 
-| Field | Where | What it is |
-|---|---|---|
-| `timestamp` | all | UTC time the record was written |
-| `input_preview`, `input_chars` | all | First 100 characters of the submitted `text`, and its full length (`null` when there was no usable text) |
-| `guess`, `label`, `model_score`, `style_score`, `combined_score` | decisions | The output: what the system decided and the three scores behind it |
-| `duration_ms` | all | Wall time of the whole request, from the first line of the request to the log write |
-| `model_ms`, `style_ms` | decisions | Time in signal one (gpt2) and signal two, so a slow run can be pinned to a stage |
-| `event`, `status`, `reason`, `http_status` | rejections and errors | `rejected` = the service refused the input (400/413/422/429). `error` = the service itself failed (500/503), with `error_type` and `error_message` |
-| `scope`, `retry_after` | 429s | Which limit tripped and how long to wait |
+| Field                                                            | Where                 | What it is                                                                                                                                         |
+| ---------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timestamp`                                                      | all                   | UTC time the record was written                                                                                                                    |
+| `input_preview`, `input_chars`                                   | all                   | First 100 characters of the submitted `text`, and its full length (`null` when there was no usable text)                                           |
+| `guess`, `label`, `model_score`, `style_score`, `combined_score` | decisions             | The output: what the system decided and the three scores behind it                                                                                 |
+| `duration_ms`                                                    | all                   | Wall time of the whole request, from the first line of the request to the log write                                                                |
+| `model_ms`, `style_ms`                                           | decisions             | Time in signal one (gpt2) and signal two, so a slow run can be pinned to a stage                                                                   |
+| `event`, `status`, `reason`, `http_status`                       | rejections and errors | `rejected` = the service refused the input (400/413/422/429). `error` = the service itself failed (500/503), with `error_type` and `error_message` |
+| `scope`, `retry_after`                                           | 429s                  | Which limit tripped and how long to wait                                                                                                           |
 
 Anything the service crashes on is caught by one error handler. It logs an
 `error` record and returns `{"error": ..., "evaluated": false}`, where it used
@@ -1260,10 +1260,10 @@ measured is seconds per `/submit` run.
 over 10 runs.** The first request after a start costs about 8 s extra, because
 it loads the model.
 
-| | Mean | Min | Max |
-|---|---|---|---|
+|                   | Mean        | Min     | Max     |
+| ----------------- | ----------- | ------- | ------- |
 | Wall time per run | **0.123 s** | 0.093 s | 0.168 s |
-| CPU time per run | **0.455 s** | 0.365 s | 0.616 s |
+| CPU time per run  | **0.455 s** | 0.365 s | 0.616 s |
 
 **How I measured it** (`python measure_cost.py`, output in `results/cost_run.md`):
 
@@ -1361,6 +1361,166 @@ before and after flood runs are the evidence.
   putting the service behind a proxy and trusting `X-Forwarded-For`, is a
   deployment change. It is a separate piece of work from closing the
   `creator_id` bypass, so it stays out of this change.
+
+## Unit 9 run log — after the rate-limit change
+
+Everything was run three separate times. Each run started a **fresh server**
+(so rate-limit counts began at zero) and did four things in order, with the real
+gpt2 model and the real rate limits:
+
+1. `python run_attacks.py --flood 15`: 15 submissions from one `creator_id`.
+2. `python run_eval.py --trials 1`: criteria 1 to 5 against the live server.
+3. `GET /log`: the server's log, saved.
+4. `python -m unittest -v test_rate_limit test_failures`: criteria 6 to 11.
+
+The server for each run wrote to its own audit file, so none of this touched
+`logs/audit.jsonl`. Everything is saved under `results/unit9_runs/`
+(`run<N>_flood.txt`, `run<N>_eval.txt`, `run<N>_audit.jsonl`, `run<N>_tests.txt`,
+`run<N>_log_endpoint.json`, `run<N>_server.log`) and in the three
+`results/run_*_unit9_run<N>.md` reports, which hold the full JSON that came back.
+
+| Criterion                            | Target                                                                              | Run 1                                                 | Run 2                       | Run 3                       | Verdict                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------- | --------------------------- | ------------------------------------------------------------ |
+| 1. False positives                   | none of 5 of my own pieces labelled `ai`                                            | MET (5 × `unsure`)                                    | MET (5 × `unsure`)          | MET (5 × `unsure`)          | MET                                                          |
+| 2. Score spread                      | at least 4 of 5 AI/human pairs, AI ≥ 0.2 higher                                     | 2 of 2 pairs (0.496, 0.284)                           | 2 of 2 pairs (0.496, 0.284) | 2 of 2 pairs (0.496, 0.284) | **NOT FULLY TESTED**: only 2 pairs exist, the target needs 5 |
+| 3. Label coverage                    | all of `ai`, `human`, `unsure` appear, nothing else                                 | MET (`ai`, `human`, `unsure`)                         | MET                         | MET                         | MET                                                          |
+| 4. Appeal path                       | 5/5 appeals `under_review`, logged after the decision; unknown id errors            | MET (5/5; unknown id 404)                             | MET                         | MET                         | MET                                                          |
+| 5. Bad input                         | 5 bad inputs: 4xx + `error`, logged, no label                                       | MET (400, 400, 400, 400, 413; 5 logged)               | MET                         | MET                         | MET                                                          |
+| 6. Rotating `creator_id`             | 40 requests → 20 × `200`, 20 × `429`                                                | MET (20 / 20)                                         | MET (20 / 20)               | MET (20 / 20)               | MET                                                          |
+| 7. One `creator_id`                  | 40 requests → 5 × `200`, 35 × `429`                                                 | MET (5 / 35); live flood of 15: 5 × `200`, 10 × `429` | MET (5 / 35); flood 5 / 10  | MET (5 / 35); flood 5 / 10  | MET                                                          |
+| 8. Shared address                    | 4 writers × 5 requests, all `200`                                                   | MET                                                   | MET                         | MET                         | MET                                                          |
+| 9. `429` tells caller how to recover | `Retry-After` 1 to 61, matching body, correct `scope`, `evaluated: false`, no label | MET (both scopes)                                     | MET                         | MET                         | MET                                                          |
+| 10. Every `429` recorded             | `rate_limited` entries = number of `429`s                                           | MET (20 = 20, 35 = 35)                                | MET                         | MET                         | MET                                                          |
+| 11. Service failure handled          | `503`/`500`, `evaluated: false`, `error` record, no decision, recovers              | MET (7 of 7 tests)                                    | MET (7 of 7)                | MET (7 of 7)                | MET                                                          |
+
+**What the verdicts rest on.** Criteria 1 to 5 are judged from the eval output
+and the run's own audit file. Criteria 6 to 11 are judged from the 14 tests,
+which passed in all three runs (`Ran 14 tests`, `OK`). Criterion 7 was also
+seen on the live server: the flood sent 15 requests and got 5 × `200` then
+10 × `429` in every run.
+
+**Things I should not hide:**
+
+- **Criterion 2 is not really tested.** The criterion asks for 5 AI/human pairs.
+  `scenarios.py` sends 3 texts: one AI, one human and one lightly edited AI, so
+  there are only 2 pairs. Both clear 0.2 (0.781 against 0.285 is 0.496, and the
+  edited AI at 0.569 against 0.285 is 0.284). That is 2 of 2, but I can't claim
+  "at least 4 of 5". The Unit 8 table above marks this criterion MET on the same
+  data; I don't think that was fully justified. It needs three more pairs.
+- **Identical scores in all three runs.** Every score matched to four decimals
+  across runs, so the model signal was deterministic here. The warning that
+  identical input can score differently twice did not show up on this machine.
+  Three runs is also a small sample.
+- **Criterion 1 passes narrowly.** All five of my own pieces came out `unsure`
+  and none `ai`, which is what the target asks, but none was confidently
+  `human`.
+- **The address cap interrupted the eval, and the run script waited it out.**
+  The flood plus the eval send more than 20 requests from one address in a
+  minute. In every run the second eval request ("Technology plays an important
+  role...", criterion 2) got a `429` with `scope: "address"` and the script
+  waited 50 to 51 s for `Retry-After`, then resent it. Each run's audit file
+  therefore has 11 `rate_limited` entries: the flood's 10 plus that one. This is
+  recorded as `retried_429` in the eval JSON. `run_eval.py` didn't do this
+  before; I added it so the address cap doesn't hide the answers.
+- **A first attempt was thrown away.** The first three runs went to a different
+  server already running on port 5000, so they were not fresh and wrote to the
+  real audit log. I deleted that output, removed the extra lines it added to
+  `logs/audit.jsonl`, and redid all three on port 5055. Nothing above comes from
+  that attempt.
+
+**Real output, run 1.** The flood against the live server (runs 2 and 3 are the
+same):
+
+```
+15 submissions as 'flood_tester' against http://127.0.0.1:5055
+
+  [ 1/15] 200
+  [ 2/15] 200
+  [ 3/15] 200
+  [ 4/15] 200
+  [ 5/15] 200
+  [ 6/15] 429
+  [ 7/15] 429
+  [ 8/15] 429
+  [ 9/15] 429
+  [10/15] 429
+  [11/15] 429
+  [12/15] 429
+  [13/15] 429
+  [14/15] 429
+  [15/15] 429
+
+10 of 15 were rate limited.
+```
+
+The eval, as it printed (`run_eval.py --trials 1`). All three runs printed the
+same, with the wait of 50 to 51 s:
+
+```
+False positives  (criterion 1)
+  trial 1: unsure, unsure, unsure, unsure, unsure
+score spread  (criterion 2)
+    429 on 'Technology plays an important ' - waiting 51s (retry 1)
+  trial 1: ai, human, unsure
+label coverage  (criterion 3)
+  trial 1: ai, human, unsure
+appeal path  (criterion 4)
+  trial 1: unsure, unsure, unsure, unsure, unsure, —
+bad input  (criterion 5)
+  trial 1: —, —, —, —, —
+```
+
+(The `—` in the bad-input line is correct: those requests were refused, so there
+is no guess. The `—` at the end of the appeal line is the made-up content id.)
+
+The one `429` the eval hit, as logged in run 1's audit file:
+
+```json
+{
+  "timestamp": "2026-11-16T22:31:52+00:00",
+  "creator_id": "eval_score spread_1",
+  "event": "rejected",
+  "status": "rejected",
+  "reason": "rate_limited",
+  "limit": "20 per 1 minute",
+  "scope": "address",
+  "retry_after": 51,
+  "duration_ms": 0.9,
+  "input_chars": 400,
+  "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"
+}
+```
+
+The test output, run 1 (criteria 6 to 11; runs 2 and 3 matched, `Ran 14 tests`, `OK`):
+
+```
+test_429_tells_the_caller_how_to_recover (test_rate_limit.RateLimitTests.test_429_tells_the_caller_how_to_recover)
+A 429 carries Retry-After, a structured body, and says nothing was evaluated. ... ok
+test_address_limit_is_reported_as_address_scope (test_rate_limit.RateLimitTests.test_address_limit_is_reported_as_address_scope) ... ok
+test_every_429_has_exactly_one_audit_record (test_rate_limit.RateLimitTests.test_every_429_has_exactly_one_audit_record)
+Criterion 10: rejections and records match 1:1, in both flows. ... ok
+test_rejection_is_audited_with_retry_after (test_rate_limit.RateLimitTests.test_rejection_is_audited_with_retry_after) ... ok
+test_rotating_creator_id_from_one_address_is_limited (test_rate_limit.RateLimitTests.test_rotating_creator_id_from_one_address_is_limited)
+A stranger rotating creator_id from ONE address must hit a 429. ... ok
+test_single_creator_id_is_limited (test_rate_limit.RateLimitTests.test_single_creator_id_is_limited)
+Control: the existing per-creator limit still works. ... ok
+test_writers_sharing_an_address_are_not_punished (test_rate_limit.RateLimitTests.test_writers_sharing_an_address_are_not_punished)
+Four real writers behind one address, each within their own limit. ... ok
+test_a_failure_leaves_no_decision_to_appeal (test_failures.FailurePathTests.test_a_failure_leaves_no_decision_to_appeal) ... ok
+test_detector_unavailable_is_a_503 (test_failures.FailurePathTests.test_detector_unavailable_is_a_503) ... ok
+test_error_detail_stays_in_the_log_not_the_response (test_failures.FailurePathTests.test_error_detail_stays_in_the_log_not_the_response) ... ok
+test_every_failure_leaves_an_error_record (test_failures.FailurePathTests.test_every_failure_leaves_an_error_record) ... ok
+test_input_with_no_readable_words_is_refused_not_scored (test_failures.FailurePathTests.test_input_with_no_readable_words_is_refused_not_scored) ... ok
+test_service_recovers_after_a_failure (test_failures.FailurePathTests.test_service_recovers_after_a_failure) ... ok
+test_unexpected_exception_is_a_500_with_no_verdict (test_failures.FailurePathTests.test_unexpected_exception_is_a_500_with_no_verdict) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.308s
+
+OK
+
+  rotating creator_id x40: 20 x 200, 20 x 429
+```
 
 ---
 
