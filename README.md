@@ -1210,18 +1210,42 @@ missed AI text, so the system prefers `unsure` to a wrong `ai`.
 
 **What we're changing.** The focus area is rate limiting.
 Today the limit is keyed on the `creator_id` the caller sends, so a script that
-rotates it gets a fresh quota every request and is never limited. The change is to close that bypass without
-punishing real writers who share an address, then show before and after
-results.
+rotates it gets a fresh quota every request and is never limited. The change is to firstly, close that bypass without
+punishing real writers who share an address, then show before and after results.
+Secondly, a 429 used to say only "Try again
+shortly," so a script had no way to know how long to wait and would retry at
+once and stay blocked. Now the 429 tells the caller how to recover:
 
-**What's out of scope.** Three things I considered and am not doing:
+- A `Retry-After` header with the seconds until the window that tripped resets.
+- A JSON body with `retry_after` (the same number), `scope` (`address` for the
+  shared per-address cap, `creator` for the per-writer cap) and
+  `"evaluated": false`. That last field means the text was not classified. A
+  rejection is not a `human` verdict and carries no `label`, so a caller can't
+  mistake "not checked" for "fine."
+- An audit entry for the rejection that also records `scope` and `retry_after`,
+  so a burst of rejections shows up as a pattern in the log.
+
+`test_rate_limit.py` checks the header, the body fields, the address scope and
+the audit entry. `run_attacks.py` and `run_eval.py` do not yet wait out
+`Retry-After` and retry, so they still count a 429 as a plain rejection.
+
+**Scope of the evidence.** For this change, rate limiting is checked with
+`run_attacks.py --flood N` (`run_flood`) only, plus `test_rate_limit.py`. The
+before and after flood runs are the evidence.
+
+**What's out of scope.** Four things I considered and am not doing:
 
 - **I'm not touching the detection signals or the combining rule.** The weak
   spots in "What's Still Broken" (the evasions EV01–EV09, and signal one scoring
   plain human writing at 0.74–0.88) are real, but fixing them means redesigning
   signal one or adding a third signal, and that risks pushing FP02–FP07 toward
-  `ai`. The scores and labels must come out identical before and after this
-  change, and the attack run should show it.
+  `ai`. The detection code is untouched: the diff is only
+  the limiter decorators, the 429 handler and config, so scores and labels do not change.
+- **I'm not using the full attack run or the eval run to judge this change.**
+  `run_attacks.py --set …` and `run_eval.py` send many `creator_id`s from one
+  address, so under the new address cap they mostly return 429. Only the flood
+  attack is meant to exercise rate limiting, so their before and after scores
+  are not compared.
 - **I'm not adding accounts or authentication.** The only way to fully stop one
   person from using many `creator_id`s is to make a `creator_id` something the
   caller can't invent, such as a login or an API key. That is a different system

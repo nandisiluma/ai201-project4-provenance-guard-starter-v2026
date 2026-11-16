@@ -24,6 +24,8 @@ Routes:
     GET  /health      is the service up, and is the model loaded
 """
 
+import math
+import time
 import uuid
 
 from flask import Flask, jsonify, request
@@ -107,16 +109,38 @@ if config.RATE_LIMITING_ENABLED:
         payload = request.get_json(silent=True)
         if not isinstance(payload, dict):
             payload = {}
+
+        # How long until the window that tripped resets. Never less than 1s,
+        # and a safe default if the limiter doesn't expose a reset time.
+        retry_after = 60
+        try:
+            reset_at = limiter.current_limit.reset_at
+            retry_after = max(1, math.ceil(reset_at - time.time()))
+        except Exception:  # noqa: BLE001 — a header must never turn a 429 into a 500
+            pass
+
+        # "address" = the shared per-address cap; anything else = per-creator.
+        scope = "address" if getattr(exc.limit, "scope", None) == "address" else "creator"
+
         audit.log_rejection(
             creator_id=payload.get("creator_id", "unknown"),
             reason="rate_limited",
             limit=str(exc.description),
+            scope=scope,
+            retry_after=retry_after,
         )
-        return jsonify({
+        response = jsonify({
             "error": "rate_limited",
-            "message": "Too many submissions. Try again shortly.",
+            "message": f"Too many submissions. Try again in {retry_after}s.",
             "limit": str(exc.description),
-        }), 429
+            "scope": scope,
+            "retry_after": retry_after,
+            # Not classified. This is NOT a "human" or "clean" verdict.
+            "evaluated": False,
+        })
+        response.status_code = 429
+        response.headers["Retry-After"] = str(retry_after)
+        return response
 
 
 # ── The worked example. Already works. Don't edit. ────────────────────────────

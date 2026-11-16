@@ -427,3 +427,143 @@
 {"timestamp": "2026-11-16T17:25:05+00:00", "creator_id": "eval_bad_empty", "event": "rejected", "status": "rejected", "reason": "empty_text"}
 {"timestamp": "2026-11-16T17:25:05+00:00", "creator_id": "eval_bad_whitespace", "event": "rejected", "status": "rejected", "reason": "empty_text"}
 {"timestamp": "2026-11-16T17:25:05+00:00", "creator_id": "eval_bad_huge", "event": "rejected", "status": "rejected", "reason": "text_too_long", "length": 5500}
+{"timestamp": "2026-11-16T17:54:40+00:00", "content_id": "a59fa1dc-bf2f-4459-85f5-73707d88f758", "creator_id": "flood_tester", "guess": "human", "model_score": 0.2587, "style_score": 0.3924, "combined_score": 0.3256, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "content_id": "86075b5a-7fbe-4af6-b6cf-ecfef28e2679", "creator_id": "flood_tester", "guess": "human", "model_score": 0.2587, "style_score": 0.3924, "combined_score": 0.3256, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "content_id": "e85dd9d4-80a5-4c64-9093-ad6495eb5a22", "creator_id": "flood_tester", "guess": "human", "model_score": 0.2587, "style_score": 0.3924, "combined_score": 0.3256, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "content_id": "d56d7b3a-8ad4-4554-a29d-101b089f56a7", "creator_id": "flood_tester", "guess": "human", "model_score": 0.2587, "style_score": 0.3924, "combined_score": 0.3256, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "content_id": "f4aa5ebc-cc97-451d-879a-6f1a98de3714", "creator_id": "flood_tester", "guess": "human", "model_score": 0.2587, "style_score": 0.3924, "combined_score": 0.3256, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:40+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:41+00:00", "content_id": "e2227ec9-2e8f-42ad-8be1-6a0179743fcc", "creator_id": "attacker_EV01", "guess": "unsure", "model_score": 0.1635, "style_score": 0.6092, "combined_score": 0.3863, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:41+00:00", "content_id": "b69fe11e-42a6-42f9-9f21-5c16a51eba69", "creator_id": "attacker_EV02", "guess": "unsure", "model_score": 0.5943, "style_score": 0.3983, "combined_score": 0.4963, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "content_id": "66e867cc-8914-4bf7-819f-cbbbfd993c48", "creator_id": "attacker_EV03", "guess": "unsure", "model_score": 0.6662, "style_score": 0.4843, "combined_score": 0.5753, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "content_id": "ba2479ce-8525-462a-9151-c1379d678b68", "creator_id": "attacker_EV04", "guess": "unsure", "model_score": 0.6114, "style_score": 0.6048, "combined_score": 0.6081, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "content_id": "02fbc34a-b494-4ebc-8faf-6a17ab6a7f28", "creator_id": "attacker_EV05", "guess": "unsure", "model_score": 0.3212, "style_score": 0.4375, "combined_score": 0.3793, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_EV06", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_EV07", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_EV08", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_EV09", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_EV10", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP01", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP02", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP03", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP04", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP05", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP06", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP07", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_FP08", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI01", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI02", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI03", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI04", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI05", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_PI06", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF01", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF02", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF03", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF04", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF05", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF06", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF07", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_MF08", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_RQ01", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_RQ03", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_RQ04", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_RQ05", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": {"id": "x"}, "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "unknown", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_RQ12", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:42+00:00", "creator_id": "attacker_flood", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_False positi_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_score spread_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_label covera_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_2", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_3", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_4", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_appeal path_5", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_missing", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_null", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_empty", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_whitespace", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_huge", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_missing", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_null", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_empty", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_whitespace", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_huge", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_missing", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_null", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_empty", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_whitespace", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T17:54:43+00:00", "creator_id": "eval_bad_huge", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "content_id": "2b12b42d-9659-4f6f-9686-b4cffc787941", "creator_id": "x", "guess": "human", "model_score": 0.0001, "style_score": 0.5, "combined_score": 0.25, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "content_id": "de4e61e0-9823-4de4-8e69-aeb976897f53", "creator_id": "x", "guess": "human", "model_score": 0.0001, "style_score": 0.5, "combined_score": 0.25, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "content_id": "33334ffe-a79e-4055-838d-d331fca98039", "creator_id": "x", "guess": "human", "model_score": 0.0001, "style_score": 0.5, "combined_score": 0.25, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "content_id": "eb05f0bf-26ff-425b-9e9d-b344ef8de557", "creator_id": "x", "guess": "human", "model_score": 0.0001, "style_score": 0.5, "combined_score": 0.25, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "content_id": "1b2c2c12-9864-49ab-bcc5-456be3d1d824", "creator_id": "x", "guess": "human", "model_score": 0.0001, "style_score": 0.5, "combined_score": 0.25, "label": "We think this was probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-16T20:50:01+00:00", "creator_id": "x", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute"}

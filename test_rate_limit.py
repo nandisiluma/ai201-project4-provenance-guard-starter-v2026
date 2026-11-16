@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest import mock
 
 import app as app_module
+import audit
 import config
 import detector
 
@@ -77,6 +78,38 @@ class RateLimitTests(unittest.TestCase):
             for w in range(4) for _ in range(per)
         ]
         self.assertEqual(set(statuses), {200})
+
+    def test_429_tells_the_caller_how_to_recover(self):
+        """A 429 carries Retry-After, a structured body, and says nothing was evaluated."""
+        resp = None
+        for _ in range(config.RATE_LIMIT_PER_MINUTE + 1):
+            resp = self.client.post("/submit", json={"text": TEXT, "creator_id": "one_writer"})
+        self.assertEqual(resp.status_code, 429)
+
+        header = resp.headers.get("Retry-After")
+        self.assertIsNotNone(header, "429 is missing the Retry-After header")
+        self.assertTrue(1 <= int(header) <= 61, f"Retry-After {header} outside the per-minute window")
+
+        body = resp.get_json()
+        self.assertEqual(body["error"], "rate_limited")
+        self.assertEqual(body["retry_after"], int(header))
+        self.assertEqual(body["scope"], "creator")
+        self.assertIs(body["evaluated"], False)
+        self.assertNotIn("label", body)  # a rejection must not look like a verdict
+
+    def test_address_limit_is_reported_as_address_scope(self):
+        resp = None
+        for i in range(config.RATE_LIMIT_ADDRESS_PER_MINUTE + 1):
+            resp = self.client.post("/submit", json={"text": TEXT, "creator_id": f"s_{i}"})
+        self.assertEqual(resp.status_code, 429)
+        self.assertEqual(resp.get_json()["scope"], "address")
+
+    def test_rejection_is_audited_with_retry_after(self):
+        for _ in range(config.RATE_LIMIT_PER_MINUTE + 1):
+            self.client.post("/submit", json={"text": TEXT, "creator_id": "one_writer"})
+        rejections = [e for e in audit.read_entries() if e.get("reason") == "rate_limited"]
+        self.assertTrue(rejections, "no rate_limited entry in the audit log")
+        self.assertIn("retry_after", rejections[-1])
 
 
 if __name__ == "__main__":
