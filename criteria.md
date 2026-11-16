@@ -225,3 +225,42 @@ The test only checks that one entry exists, so I set the stricter target of the
 counts matching exactly: that is what shows no `429` slips through unlogged. I
 checked it by hand and the counts match (20 of 20 and 35 of 35 in each trial);
 `test_rate_limit.py` doesn't assert the equality yet.
+
+---
+
+## 11. When the service itself fails, it says so, stays honest and leaves a record
+
+When signal one fails, both for a `DetectorUnavailable` (model missing or won't
+load) and for an unexpected exception, in 3 trials of each:
+
+- The response is a `503` (unavailable) or `500` (anything else) with an `error`
+  field and `evaluated: false`.
+- It carries no `label`, `guess`, `confidence` or score, and no exception text
+  or traceback.
+- The audit log gets one `error` entry with `creator_id`, `reason`,
+  `http_status`, `error_type`, `error_message`, `duration_ms` and `input_chars`.
+  The exception detail is in that entry, not in the response.
+- No decision is logged, so there is nothing to appeal for a text that was never
+  scored.
+- The next valid submission afterwards gets a `200`, and `/ping` still answers.
+
+Text with no readable words (emoji, punctuation, another script) is an empty
+result and is refused with a `422` and a `no_readable_text` entry, never scored.
+
+**Why this target:**
+
+This is the path where the interesting failures live. A crash that returned a
+plain 500 and left nothing behind would look to a writer like "no result" and to
+me like a quiet afternoon. The worst version is a failure that comes back looking
+like a verdict, so a text that was never read cannot carry a label. Keeping the
+exception text out of the response stops a path or a secret from reaching a
+stranger, while the log still gives me what I need to diagnose it. I include
+recovery because a failure that leaves the service stuck is worse than one that
+doesn't. Criterion 5 covers inputs the service refuses on sight. This one covers
+what happens when the input was fine and the service broke.
+
+Checked by `test_failures.py` (7 tests, all passing), where the failures are
+induced by making `detector.model_signal` raise. **Not covered:** timeouts. The
+service has no server-side time limit on scoring, so a request that hangs would
+hang. Only the test scripts time out (90 s client side). That is a known gap, not
+a criterion I can claim.
