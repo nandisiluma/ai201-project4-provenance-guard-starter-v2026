@@ -59,13 +59,24 @@ class RateLimitTests(unittest.TestCase):
         print(f"\n  rotating creator_id x{N_REQUESTS}: "
               f"{statuses.count(200)} x 200, {statuses.count(429)} x 429")
         self.assertIn(429, statuses, "40 requests from one address were never limited")
-        self.assertLessEqual(statuses.count(200), config.RATE_LIMIT_PER_MINUTE * 2)
+        self.assertEqual(statuses.count(200), config.RATE_LIMIT_ADDRESS_PER_MINUTE)
 
     def test_single_creator_id_is_limited(self):
         """Control: the existing per-creator limit still works."""
         statuses = self._statuses(lambda i: "one_writer")
         self.assertEqual(statuses.count(200), config.RATE_LIMIT_PER_MINUTE)
         self.assertIn(429, statuses)
+
+    def test_writers_sharing_an_address_are_not_punished(self):
+        """Four real writers behind one address, each within their own limit."""
+        per = config.RATE_LIMIT_PER_MINUTE
+        statuses = [
+            self.client.post(
+                "/submit", json={"text": TEXT, "creator_id": f"writer_{w}"}
+            ).status_code
+            for w in range(4) for _ in range(per)
+        ]
+        self.assertEqual(set(statuses), {200})
 
 
 if __name__ == "__main__":

@@ -105,6 +105,14 @@ RATE_LIMITING_ENABLED = True
 RATE_LIMIT_PER_MINUTE = 5
 RATE_LIMIT_PER_DAY = 50
 
+# A second, looser cap keyed on the caller's ADDRESS, which the caller can't
+# rotate the way they can rotate creator_id. Several real writers can share an
+# address (a household, a campus), so it sits well above the per-creator limit:
+# four writers at the per-creator limit still fit. A script that rotates
+# creator_id is stopped here.
+RATE_LIMIT_ADDRESS_PER_MINUTE = 20
+RATE_LIMIT_ADDRESS_PER_DAY = 200
+
 # Flask-Limiter warns loudly without this. In-memory is right for one laptop
 # and wrong for anything real — a restart forgets every count, and two copies
 # of the service wouldn't share limits.

@@ -65,10 +65,11 @@ class _LimiterOff:
         return lambda view: view
 
 
+from flask_limiter.util import get_remote_address
+
 limiter = _LimiterOff()
 if config.RATE_LIMITING_ENABLED:
     from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
 
     def rate_limit_key():
         """
@@ -161,6 +162,11 @@ def _reject(creator_id, reason, status, message, **extra):
 
 @app.post("/submit")
 @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
+@limiter.limit(
+    f"{config.RATE_LIMIT_ADDRESS_PER_MINUTE}/minute;{config.RATE_LIMIT_ADDRESS_PER_DAY}/day",
+    key_func=get_remote_address,
+    scope="address",
+)
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.
