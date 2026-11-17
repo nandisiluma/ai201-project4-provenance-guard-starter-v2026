@@ -1145,6 +1145,67 @@ Input validation closed every crash and every malformed-input case. The attack r
 
 I would keep the same logic and accept that some AI text, including every evasion above, gets through as `unsure`, because a false `ai` label costs a real writer their reputation, and a missed detection costs very little. The people who pay for it are the readers and the honest writers on the site, who compete with undisclosed AI text, and I'd accept that cost over accusing one person wrongly.
 
+### Unit 9: after the rate-limit change
+
+The rate-limit run log (above, "Unit 9 run log") met 10 of its 11 criteria in
+all three runs and could not fully test the other. Nothing was missed, so what is
+left is what the run didn't prove and where the targets were set too low.
+
+**Criterion 2 (score spread) is not really tested.**
+
+- It asks for 5 AI/human pairs and `scenarios.py` sends 3 texts, so 2 pairs. Both
+  clear 0.2, but "at least 4 of 5" was never measured, and the Unit 8 table's
+  MET for it rested on the same 2 pairs.
+- **What I'd do:** write three more pairs, each AI text matched to a human one on
+  the same topic, and re-run. **Why I stopped:** I wrote the criteria after the
+  fix and ran out of time to collect the writing. The pairs need real human text
+  on a topic, and I didn't want to make some up.
+
+**Criterion 11 doesn't cover timeouts.**
+
+- There is no server-side time limit on scoring, so a request that hangs would
+  hang. Only the test scripts time out (90 s).
+- **What I'd do:** run `detector.model_signal` with a timeout, return a `504` and
+  write an `error` record. **Why I stopped:** it is a change to the scoring path
+  and I wanted the failure handling that already exists tested first.
+
+**Targets I set too low:**
+
+- **Criterion 1.** "None of 5 labelled `ai`" is met by labelling everything
+  `unsure`, and that is what happened: all 5 of my own pieces came out `unsure`,
+  none `human`. I'd tighten it to "none `ai`, and at least 2 of 5 labelled
+  `human`". It would be missed today (0 of 5), which is the point.
+- **Criterion 3.** Label coverage passes whenever each label shows up once, which
+  says the ranges have no gap but nothing about whether the labels are right. I'd
+  tighten it to the combined-score ranges, for example "the clearly-AI text is
+  `ai` and the clearly-human text is `human` in 3 of 3 runs".
+- **Criterion 6.** The address cap of 20 a minute is high enough that one
+  address gets 20 free scored runs a minute. I'd tighten it to match a real
+  household, for example 12 a minute, once I know how many people share an
+  address.
+
+**Rate-limit weak spots I haven't fixed:**
+
+- Counts live in memory (`memory://`). Under `gunicorn` with several workers, each
+  worker counts separately, so the real limit is roughly the limit times the
+  number of workers. The fix is shared storage such as Redis.
+- Behind a proxy every user looks like one address, so everyone would share the 20
+  a minute. The fix is trusting `X-Forwarded-For`, which needs to be configured
+  with care or an attacker can fake it.
+- A caller with many addresses still gets a quota per address. Stopping that
+  needs accounts, which I said I'm not building.
+- `Retry-After` can read 61 on a one-minute window because the reset time is
+  rounded up.
+- `run_eval.py` and `run_attacks.py` are slowed to about 20 requests a minute by
+  the address cap, so the full attack set takes much longer or returns mostly
+  `429`.
+
+**What I'd do next.** First I'd write the three missing AI/human pairs and
+measure criterion 2 properly, because every other result here rests on the two
+signals telling AI from human, and that is the one claim I have measured on only
+two pairs. Everything else on this list is hardening around a detector whose main
+number I haven't yet earned.
+
 <!-- ═════════════════════════════════════════════════════════════════════
 
      SUBMISSION CHECKLIST — unit 7
@@ -1286,6 +1347,27 @@ run on one machine isn't a benchmark, and a request that is refused before
 scoring costs under a millisecond (`duration_ms` is 0.4 to 0.8 in the failed
 entries above), so a flood of bad requests is cheap for the service to turn away
 and a flood of valid ones is not.
+
+**What it would cost for a hundred people a day.** The unit is CPU-seconds, so
+this is multiplication, using the measured 0.455 CPU-s and 0.123 s wall per run.
+The count of runs is my assumption: a writer checks a few pieces in a sitting,
+so I take 5 submissions each. The limit allows 50 a day, so that is the ceiling.
+
+```
+Typical:  100 people x 5 submissions/day  = 500 runs/day
+          500 runs x 0.455 CPU-s          = 227.5 CPU-s  = 3.8 CPU-minutes/day
+          500 runs x 0.123 s wall         =  61.5 s of waiting, all day
+          227.5 CPU-s / 86,400 s in a day = 0.26% of one core
+
+Ceiling:  100 people x 50 submissions/day = 5,000 runs/day
+          5,000 runs x 0.455 CPU-s        = 2,275 CPU-s = 37.9 CPU-minutes/day
+          2,275 CPU-s / 86,400 s          = 2.6% of one core
+```
+
+For a hundred people a day this costs about 4 CPU-minutes of one core (38 at the
+per-writer limit), $0 in API spend, so the compute is almost nothing and the real
+cost is keeping a server with enough memory for `torch` and `gpt2` up all day,
+because `RUNNING.md` shows that doesn't fit a free 512 MB host.
 
 ---
 
@@ -1521,6 +1603,578 @@ OK
 
   rotating creator_id x40: 20 x 200, 20 x 429
 ```
+
+---
+
+## Real output for each criterion, run 1
+
+#### Criterion 1 — False positives
+
+**Responses:** produced by `run_eval.py::main` (which sends the request) calling
+`app.py::submit`. None is `ai`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.7193,
+    "style_score": 0.5977,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Good day,Unfortunately due to competing priorities, I will not be able"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.3662,
+    "model_score": 0.3311,
+    "style_score": 0.4014,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Hello, I am reaching out because a Walmart grocery delivery intended f"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.6072,
+    "model_score": 0.7719,
+    "style_score": 0.4425,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Hi Diana, Thank you for following up with me. I realized that I do not"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.504,
+    "model_score": 0.5451,
+    "style_score": 0.463,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Hello CS7 Students, Congratulations again on completing this class! We"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5282,
+    "model_score": 0.4743,
+    "style_score": 0.5821,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "The art of our mindset determines the people we become, directs the wa"
+  }
+]
+```
+
+**Log lines:** written by `audit.py::log_decision`, called from `app.py::submit`
+(from `results/unit9_runs/run1_audit.jsonl`).
+
+```json
+{"timestamp": "2026-11-16T22:31:51+00:00", "content_id": "443e6b8e-fd46-40d2-96b4-f1c7720a7f25", "creator_id": "eval_False positi_1", "guess": "unsure", "model_score": 0.7193, "style_score": 0.5977, "combined_score": 0.64, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 115.4, "style_ms": 0.2, "duration_ms": 116.3, "input_chars": 205, "input_preview": "Good day,Unfortunately due to competing priorities, I will not be able to volunteer for the June sum"}
+{"timestamp": "2026-11-16T22:31:51+00:00", "content_id": "164a8947-72b0-4c88-8e97-4f3621fe3583", "creator_id": "eval_False positi_2", "guess": "unsure", "model_score": 0.3311, "style_score": 0.4014, "combined_score": 0.3662, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 391.4, "style_ms": 0.4, "duration_ms": 392.8, "input_chars": 654, "input_preview": "Hello, I am reaching out because a Walmart grocery delivery intended for my residence at Windsor by "}
+{"timestamp": "2026-11-16T22:31:51+00:00", "content_id": "cc62b71e-93f7-4724-84fe-25964e5c684d", "creator_id": "eval_False positi_3", "guess": "unsure", "model_score": 0.7719, "style_score": 0.4425, "combined_score": 0.6072, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 173.3, "style_ms": 0.3, "duration_ms": 174.9, "input_chars": 197, "input_preview": "Hi Diana, Thank you for following up with me. I realized that I do not meet the GPA requirement, I h"}
+{"timestamp": "2026-11-16T22:31:52+00:00", "content_id": "33067a93-e1f4-4626-824a-9c817be3da6f", "creator_id": "eval_False positi_4", "guess": "unsure", "model_score": 0.5451, "style_score": 0.463, "combined_score": 0.504, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 204.9, "style_ms": 0.3, "duration_ms": 206.2, "input_chars": 496, "input_preview": "Hello CS7 Students, Congratulations again on completing this class! We are so proud of all you've ac"}
+{"timestamp": "2026-11-16T22:31:52+00:00", "content_id": "33558df8-cac1-46e9-a698-76ec13d58602", "creator_id": "eval_False positi_5", "guess": "unsure", "model_score": 0.4743, "style_score": 0.5821, "combined_score": 0.5282, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 521.2, "style_ms": 0.3, "duration_ms": 522.5, "input_chars": 1193, "input_preview": "The art of our mindset determines the people we become, directs the way we live and thus what we pro"}
+```
+
+#### Criterion 2 — Score spread
+
+**Responses:** `run_eval.py::main` calling `app.py::submit`. Combined scores are
+`confidence`: 0.781 (AI), 0.2854 (human), 0.5693 (lightly edited AI).
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "ai",
+    "confidence": 0.781,
+    "model_score": 0.8579,
+    "style_score": 0.7041,
+    "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 1,
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "human",
+    "confidence": 0.2854,
+    "model_score": 0.3099,
+    "style_score": 0.2609,
+    "label": "We think this was probably written by a person.",
+    "retried_429": 0,
+    "sent": "Okay so \u2014 the dog ate my sandwich. Not a metaphor. Actual sandwich, ac"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5693,
+    "model_score": 0.6698,
+    "style_score": 0.4688,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  }
+]
+```
+
+**Log lines:** `audit.py::log_decision`, called from `app.py::submit`. The `429`
+on the first one is the address cap, and its record is under Criterion 9.
+
+```json
+{"timestamp": "2026-11-16T22:31:52+00:00", "creator_id": "eval_score spread_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute", "scope": "address", "retry_after": 51, "duration_ms": 0.9, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T22:32:43+00:00", "content_id": "505eb1e8-454d-44cc-b348-7492da67b60d", "creator_id": "eval_score spread_1", "guess": "ai", "model_score": 0.8579, "style_score": 0.7041, "combined_score": 0.781, "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 145.4, "style_ms": 0.3, "duration_ms": 146.6, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T22:32:43+00:00", "content_id": "a867f493-a118-4a4f-86cd-ba43dc6f052b", "creator_id": "eval_score spread_2", "guess": "human", "model_score": 0.3099, "style_score": 0.2609, "combined_score": 0.2854, "label": "We think this was probably written by a person.", "status": "decided", "model_ms": 121.2, "style_ms": 0.3, "duration_ms": 122.2, "input_chars": 244, "input_preview": "Okay so — the dog ate my sandwich. Not a metaphor. Actual sandwich, actual dog (Biscuit, a menace). "}
+{"timestamp": "2026-11-16T22:32:43+00:00", "content_id": "30c287cb-13b6-49d9-8270-772b86fe7472", "creator_id": "eval_score spread_3", "guess": "unsure", "model_score": 0.6698, "style_score": 0.4688, "combined_score": 0.5693, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 143.4, "style_ms": 0.2, "duration_ms": 144.4, "input_chars": 351, "input_preview": "Remote work has changed how many people think about their jobs. It offers flexibility and saves comm"}
+```
+
+#### Criterion 3 — Label coverage
+
+**Responses:** `run_eval.py::main` calling `app.py::submit`. All three labels
+appear: `ai`, `human`, `unsure`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "ai",
+    "confidence": 0.781,
+    "model_score": 0.8579,
+    "style_score": 0.7041,
+    "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "human",
+    "confidence": 0.2854,
+    "model_score": 0.3099,
+    "style_score": 0.2609,
+    "label": "We think this was probably written by a person.",
+    "retried_429": 0,
+    "sent": "Okay so \u2014 the dog ate my sandwich. Not a metaphor. Actual sandwich, ac"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": null,
+    "guess": "unsure",
+    "confidence": 0.5693,
+    "model_score": 0.6698,
+    "style_score": 0.4688,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  }
+]
+```
+
+**Log lines:** `audit.py::log_decision`, called from `app.py::submit`.
+
+```json
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "a3c6341a-f7eb-4a9c-9f76-e1ea2f4eb63c", "creator_id": "eval_label covera_1", "guess": "ai", "model_score": 0.8579, "style_score": 0.7041, "combined_score": 0.781, "label": "This looks like it may have been written by AI. We can get this wrong. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 139.8, "style_ms": 0.2, "duration_ms": 140.9, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "a8c906c0-1ce4-49dc-88b3-29cf50293526", "creator_id": "eval_label covera_2", "guess": "human", "model_score": 0.3099, "style_score": 0.2609, "combined_score": 0.2854, "label": "We think this was probably written by a person.", "status": "decided", "model_ms": 125.3, "style_ms": 0.2, "duration_ms": 126.3, "input_chars": 244, "input_preview": "Okay so — the dog ate my sandwich. Not a metaphor. Actual sandwich, actual dog (Biscuit, a menace). "}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "bbef22f7-7edf-41fe-be50-76c3fcc62a99", "creator_id": "eval_label covera_3", "guess": "unsure", "model_score": 0.6698, "style_score": 0.4688, "combined_score": 0.5693, "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.", "status": "decided", "model_ms": 158.9, "style_ms": 0.3, "duration_ms": 159.9, "input_chars": 351, "input_preview": "Remote work has changed how many people think about their jobs. It offers flexibility and saves comm"}
+```
+
+#### Criterion 4 — Appeal path
+
+**Responses:** `run_eval.py::main` calling `app.py::submit`, then
+`run_eval.py::appeal_for` calling `app.py::appeal`. The last entry is the
+made-up content id, which returns `404 unknown_content_id`.
+
+```json
+[
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.4306,
+    "model_score": 0.461,
+    "style_score": 0.4002,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Good day, due to competing priorities I will not be able to volunteer "
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.5162,
+    "model_score": 0.6372,
+    "style_score": 0.3952,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Hi Diana, thank you for following up. I do not meet the GPA requiremen"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.3715,
+    "model_score": 0.3451,
+    "style_score": 0.3978,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Okay so, the dog ate my sandwich. Not a metaphor. I turned around for "
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.7691,
+    "style_score": 0.5834,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Remote work has changed how many people think about their jobs. It off"
+  },
+  {
+    "status": 200,
+    "error": null,
+    "appeal": {
+      "status": 200,
+      "body_status": "under_review",
+      "error": null
+    },
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.8341,
+    "style_score": 0.6143,
+    "label": "We can't tell whether this was written by a person or by AI. This doesn't mean anything is wrong with your writing. If you wrote it yourself, you can appeal and ask for a person to look at it.",
+    "retried_429": 0,
+    "sent": "Technology plays an important role in modern education. It helps stude"
+  },
+  {
+    "sent": "(unknown content_id)",
+    "appeal": {
+      "status": 404,
+      "body_status": null,
+      "error": "unknown_content_id"
+    }
+  }
+]
+```
+
+**Log lines:** the appeals as written by `audit.py::log_appeal`, called from
+`app.py::appeal`. Each one sits after its original decision in the file, and the
+decision line is unchanged.
+
+```json
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "99e45114-1638-412d-87db-9743a72a5493", "creator_id": "eval_appeal path_1", "event": "appeal", "status": "under_review", "reasoning": "These are formal emails I wrote myself and the decision is wrong."}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "4f4a354d-0b5e-4310-9e24-6dc808e3d3e7", "creator_id": "eval_appeal path_2", "event": "appeal", "status": "under_review", "reasoning": "These are formal emails I wrote myself and the decision is wrong."}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "5571f342-31d5-46f9-9d3b-af8b2b187e16", "creator_id": "eval_appeal path_3", "event": "appeal", "status": "under_review", "reasoning": "These are formal emails I wrote myself and the decision is wrong."}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "6fa25280-b6ac-42ef-81c2-f42dabaa1491", "creator_id": "eval_appeal path_4", "event": "appeal", "status": "under_review", "reasoning": "These are formal emails I wrote myself and the decision is wrong."}
+{"timestamp": "2026-11-16T22:32:44+00:00", "content_id": "12e357f6-14ab-4e83-91de-16527967e6ed", "creator_id": "eval_appeal path_5", "event": "appeal", "status": "under_review", "reasoning": "These are formal emails I wrote myself and the decision is wrong."}
+```
+
+#### Criterion 5 — Bad input
+
+**Responses:** `run_eval.py::main` calling `app.py::submit`. Every one is a 4xx
+with an `error` field and no label.
+
+```json
+[
+  {
+    "status": 400,
+    "error": "missing_text",
+    "appeal": null,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "retried_429": 0,
+    "sent": "{\"creator_id\": \"eval_bad_missing\"}"
+  },
+  {
+    "status": 400,
+    "error": "missing_text",
+    "appeal": null,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "retried_429": 0,
+    "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"
+  },
+  {
+    "status": 400,
+    "error": "empty_text",
+    "appeal": null,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "retried_429": 0,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 400,
+    "error": "empty_text",
+    "appeal": null,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "retried_429": 0,
+    "sent": "   \n\t  "
+  },
+  {
+    "status": 413,
+    "error": "text_too_long",
+    "appeal": null,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "retried_429": 0,
+    "sent": "word word word word word word word word word word word word word word "
+  }
+]
+```
+
+**Log lines:** `audit.py::log_rejection`, called from `app.py::_reject`.
+
+```json
+{"timestamp": "2026-11-16T22:32:44+00:00", "creator_id": "eval_bad_missing", "event": "rejected", "status": "rejected", "reason": "missing_text", "http_status": 400, "duration_ms": 0.7, "input_chars": null, "input_preview": null}
+{"timestamp": "2026-11-16T22:32:44+00:00", "creator_id": "eval_bad_null", "event": "rejected", "status": "rejected", "reason": "missing_text", "http_status": 400, "duration_ms": 0.3, "input_chars": null, "input_preview": null}
+{"timestamp": "2026-11-16T22:32:44+00:00", "creator_id": "eval_bad_empty", "event": "rejected", "status": "rejected", "reason": "empty_text", "http_status": 400, "duration_ms": 0.4, "input_chars": 0, "input_preview": ""}
+{"timestamp": "2026-11-16T22:32:44+00:00", "creator_id": "eval_bad_whitespace", "event": "rejected", "status": "rejected", "reason": "empty_text", "http_status": 400, "duration_ms": 0.4, "input_chars": 7, "input_preview": "   \n\t  "}
+{"timestamp": "2026-11-16T22:32:44+00:00", "creator_id": "eval_bad_huge", "event": "rejected", "status": "rejected", "reason": "text_too_long", "http_status": 413, "length": 5500, "duration_ms": 0.8, "input_chars": 5500, "input_preview": "word word word word word word word word word word word word word word word word word word word word "}
+```
+
+#### Criterion 6 — Rotating `creator_id` does not bypass the limit
+
+Printed by `test_rate_limit.py::RateLimitTests.test_rotating_creator_id_from_one_address_is_limited`
+(40 requests, a new `creator_id` each, one address), from `run1_tests.txt`:
+
+```
+test_rotating_creator_id_from_one_address_is_limited (test_rate_limit.RateLimitTests.test_rotating_creator_id_from_one_address_is_limited)
+A stranger rotating creator_id from ONE address must hit a 429. ... ok
+
+  rotating creator_id x40: 20 x 200, 20 x 429
+```
+
+The `rotating creator_id x40` line is printed by that test (it prints after the
+other tests' results, as the last line of the file).
+
+#### Criterion 7 — One `creator_id` is still held to its own limit
+
+Against the live server: `run_attacks.py::run_flood`, 15 submissions as
+`flood_tester`, from `run1_flood.txt`:
+
+```
+  [ 1/15] 200
+  [ 2/15] 200
+  [ 3/15] 200
+  [ 4/15] 200
+  [ 5/15] 200
+  [ 6/15] 429
+  [ 7/15] 429
+  [ 8/15] 429
+  [ 9/15] 429
+  [10/15] 429
+  [11/15] 429
+  [12/15] 429
+  [13/15] 429
+  [14/15] 429
+  [15/15] 429
+
+============================================================
+```
+
+The unit test `test_rate_limit.py::RateLimitTests.test_single_creator_id_is_limited`
+asserts 5 × `200` and 35 × `429` for 40 requests:
+
+```
+test_single_creator_id_is_limited (test_rate_limit.RateLimitTests.test_single_creator_id_is_limited)
+Control: the existing per-creator limit still works. ... ok
+```
+
+#### Criterion 8 — Writers who share an address are not punished
+
+From `run1_tests.txt`, produced by
+`test_rate_limit.py::RateLimitTests.test_writers_sharing_an_address_are_not_punished`
+(it asserts that all 20 requests got `200`; the test output only records the
+pass, it does not save the 20 responses):
+
+```
+test_writers_sharing_an_address_are_not_punished (test_rate_limit.RateLimitTests.test_writers_sharing_an_address_are_not_punished)
+Four real writers behind one address, each within their own limit. ... ok
+```
+
+#### Criterion 9 — Every `429` tells the caller how to recover
+
+The live-server 429 records, written by `audit.py::log_rejection` from the
+`429` handler `app.py::rate_limited` (from `run1_audit.jsonl`). First the
+per-creator one from the flood, then the address-scope one the eval hit:
+
+```json
+{"timestamp": "2026-11-16T22:31:50+00:00", "creator_id": "flood_tester", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "5 per 1 minute", "scope": "creator", "retry_after": 53, "duration_ms": 0.8, "input_chars": 148, "input_preview": "This is an ordinary submission, sent over and over from the same account to find out where the rate "}
+{"timestamp": "2026-11-16T22:31:52+00:00", "creator_id": "eval_score spread_1", "event": "rejected", "status": "rejected", "reason": "rate_limited", "limit": "20 per 1 minute", "scope": "address", "retry_after": 51, "duration_ms": 0.9, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+```
+
+The response header and body are asserted by
+`test_rate_limit.py::RateLimitTests.test_429_tells_the_caller_how_to_recover` and
+`test_address_limit_is_reported_as_address_scope`, which passed in run 1:
+
+```
+test_429_tells_the_caller_how_to_recover (test_rate_limit.RateLimitTests.test_429_tells_the_caller_how_to_recover)
+A 429 carries Retry-After, a structured body, and says nothing was evaluated. ... ok
+test_address_limit_is_reported_as_address_scope (test_rate_limit.RateLimitTests.test_address_limit_is_reported_as_address_scope) ... ok
+```
+
+The run did not save a live 429 response body, so the body itself is only shown
+by those assertions, not pasted.
+
+#### Criterion 10 — Every `429` leaves a record
+
+In run 1 the flood saw 10 × `429` (`run_attacks.py::run_flood`) and the eval saw
+1 × `429` and retried it (`run_eval.py::main`, "waiting 51s"). That is 11, and
+`audit.py::log_rejection` wrote this many `rate_limited` lines to
+`run1_audit.jsonl`:
+
+```
+$ grep -c '"reason": "rate_limited"' results/unit9_runs/run1_audit.jsonl
+11
+```
+
+The exact-match assertion over the 40-request flows is
+`test_rate_limit.py::RateLimitTests.test_every_429_has_exactly_one_audit_record`:
+
+```
+test_every_429_has_exactly_one_audit_record (test_rate_limit.RateLimitTests.test_every_429_has_exactly_one_audit_record)
+Criterion 10: rejections and records match 1:1, in both flows. ... ok
+test_rejection_is_audited_with_retry_after (test_rate_limit.RateLimitTests.test_rejection_is_audited_with_retry_after) ... ok
+```
+
+#### Criterion 11 — Service failure is handled
+
+The two tests that cause the failure write to a temporary log that is deleted
+afterwards, so run 1 has no saved failure _log lines_. What run 1 saved is the
+result of the tests, from `test_failures.py::FailurePathTests`:
+
+```
+test_unexpected_exception_is_a_500_with_no_verdict (test_failures.FailurePathTests.test_unexpected_exception_is_a_500_with_no_verdict) ... ok
+test_detector_unavailable_is_a_503 (test_failures.FailurePathTests.test_detector_unavailable_is_a_503) ... ok
+test_error_detail_stays_in_the_log_not_the_response (test_failures.FailurePathTests.test_error_detail_stays_in_the_log_not_the_response) ... ok
+test_every_failure_leaves_an_error_record (test_failures.FailurePathTests.test_every_failure_leaves_an_error_record) ... ok
+test_a_failure_leaves_no_decision_to_appeal (test_failures.FailurePathTests.test_a_failure_leaves_no_decision_to_appeal) ... ok
+test_service_recovers_after_a_failure (test_failures.FailurePathTests.test_service_recovers_after_a_failure) ... ok
+test_input_with_no_readable_words_is_refused_not_scored (test_failures.FailurePathTests.test_input_with_no_readable_words_is_refused_not_scored) ... ok
+```
+
+The actual log lines for these failures come from `measure_cost.py` (an earlier
+run, not one of the three), which induced the same failures against the real
+service and wrote them with `audit.py::log_error` and `audit.py::log_rejection`
+(from `app.py::_unexpected_error` and `app.py::_reject`) into
+`logs/instrumentation_run.jsonl`:
+
+```json
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_emoji", "event": "rejected", "status": "rejected", "reason": "no_readable_text", "http_status": 422, "duration_ms": 0.8, "input_chars": 7, "input_preview": "🙂🙂🙂 ???"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_detector", "event": "error", "status": "error", "reason": "detector_unavailable", "http_status": 503, "error_type": "DetectorUnavailable", "error_message": "model files missing", "path": "/submit", "duration_ms": 0.7, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+{"timestamp": "2026-11-16T21:28:21+00:00", "creator_id": "fail_crash", "event": "error", "status": "error", "reason": "internal_error", "http_status": 500, "error_type": "RuntimeError", "error_message": "simulated crash in signal one", "path": "/submit", "duration_ms": 0.4, "input_chars": 400, "input_preview": "Technology plays an important role in modern education. It helps students learn new skills and acces"}
+```
+
+---
+
+## Capstone
+
+### How I Used AI
+
+**Moment 1 — Hardening the rate-limit failure**
+
+- _What I asked for:_ One way to harden the system when it hits the rate limit,
+  and a better way for it to respond. Then I asked for the change and a test.
+- _What came back:_ It read `app.py` first and said the 429 handler already
+  logged the rejection, but returned a flat "try again shortly". It proposed a
+  `Retry-After` header, a body with `retry_after` and `scope`, and
+  `evaluated: false` so a rejection can't be read as a verdict. It built that
+  with three tests. One test failed (`Retry-After` came out as 61 on a 60-second
+  window because the reset time is rounded up), and it relaxed the bound to 61
+  and said so, instead of changing the behavior.
+- _What I changed:_ I chose to have it implemented, then had the README and
+  `RUNNING.md` updated to match. I kept the 61 bound because it was explained,
+  but it is a known quirk, listed under What's Still Broken.
+
+**Moment 2 — Logging, failures and the cost number**
+
+- _What I asked for:_ Structured logging with named fields, failures logged,
+  and a cost per run measured over ten runs, with ten entries and one failure
+  pasted into the README.
+- _What came back:_ Fields added to every record (`duration_ms`, `input_chars`,
+  `input_preview`, and `model_ms` and `style_ms` per stage), an error handler so
+  a crash leaves a record instead of a bare 500, and `measure_cost.py`, which
+  times the real model with both a wall clock and CPU time. It measured 0.123 s
+  wall and 0.455 s CPU, and said that CPU is higher because torch uses several
+  threads. It also said plainly that the 500 and 503 records were induced by
+  making the detector raise, not seen in the wild.
+- _What I changed:_ I kept the cost in CPU-seconds, since there is no API spend,
+  and I did the hundred-people arithmetic on top of the measured number.
+
+**Moment 3 — Criteria and the three runs**
+
+- _What I asked for:_ Five more criteria based on the rate-limit tests, then one
+  about what happens when things go wrong, then everything run three separate
+  times with the real output pasted.
+- _What came back:_ Criteria 6 to 11, each tied to a test, and a new
+  `test_failures.py` so the failure criterion rested on something checked. It
+  said criterion 11 doesn't cover timeouts. When it ran the three runs, it
+  noticed its own audit files were empty, found another server already on port 5000 that had
+  taken all the requests and written to my real audit log, and threw those runs
+  away. It removed the lines it had added and redid all three on another port. It
+  also reported that criterion 2 only ever had 2 AI/human pairs, so my Unit 8
+  "MET" for it wasn't fully justified.
+- _What I changed:_ I asked for the real output for each criterion, and the log
+  lines, to be pasted. I treated the criterion 2 finding as a real gap and listed
+  it under What's Still Broken, and left my original criteria 1 to 5 untouched.
 
 ---
 
